@@ -26,7 +26,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:54321";
 // Well-known local-only keys printed by `supabase start` (not secrets).
 const SECRET_KEY = process.env.SUPABASE_SECRET_KEY ?? "";
 const PUBLISHABLE_KEY =
-  process.env.SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH";
+  process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
 const DB_URL =
   process.env.FIRRA_DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 const TASK_SECRET = "integration-test-secret-32-chars-min!!";
