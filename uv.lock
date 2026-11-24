@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.12.*"
 
 [manifest]
@@ -11,7 +11,7 @@ members = [
 
 [manifest.dependency-groups]
 dev = [
-    { name = "datamodel-code-generator", extras = ["ruff"], specifier = ">=0.82.0" },
+    { name = "datamodel-code-generator", extras = ["ruff"], specifier = ">=0.97.0" },
     { name = "mypy", specifier = ">=1.18" },
     { name = "pytest", specifier = ">=8.4" },
     { name = "ruff", specifier = ">=0.14" },
@@ -221,7 +221,7 @@ wheels = [
 
 [[package]]
 name = "datamodel-code-generator"
-version = "0.83.0"
+version = "0.97.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "argcomplete" },
@@ -234,9 +234,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/ad/bd0c954c4c4671e586b340059139ead38570ba916a237086e245982ab14d/datamodel_code_generator-0.83.0.tar.gz", hash = "sha256:30d841e31b82095c4ef11f3dbfc99525f559a146250b9e685e2a2e4a196ca0a1", size = 3074761, upload-time = "2026-09-24T08:56:40.622Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/14/16/8920aa3397e0d7e31b63d12489b3de9ee78eb5ebe65e0e1e4a2dbad6c08a/datamodel_code_generator-0.97.0.tar.gz", hash = "sha256:21b00b0ed814ba522d096c8320ff6719dceb4bf5e23466d51fdb79aa6df6ffd6", size = 10289626, upload-time = "2026-11-17T01:23:04.504Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/4e/4a0231a7d3d4043cd27a746a50be87bc7637463023d7db9991610cd5fe56/datamodel_code_generator-0.83.0-py3-none-any.whl", hash = "sha256:371d80be360b2a57bc48462169553af57fa30225c0264ad85ae5f0d59b9d143a", size = 751087, upload-time = "2026-09-24T08:56:38.791Z" },
+    { url = "https://files.pythonhosted.org/packages/15/02/3b585acd400f5a0c8b940262e0a62adb1ce351333e11a7d547d59aae7652/datamodel_code_generator-0.97.0-py3-none-any.whl", hash = "sha256:b1d929491dbf38b0acc9b2e8fa4675c003d56a5a93a6959e46df742224723734", size = 2513658, upload-time = "2026-11-17T01:23:02.596Z" },
 ]
 
 [package.optional-dependencies]

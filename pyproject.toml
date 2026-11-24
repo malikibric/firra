@@ -7,7 +7,7 @@ dev = [
   "ruff>=0.14",
   "mypy>=1.18",
   "pytest>=8.4",
-  "datamodel-code-generator[ruff]>=0.82.0",
+  "datamodel-code-generator[ruff]>=0.97.0",
 ]
 
 # One pytest config for the whole uv workspace (pytest only reads the nearest file that has
