@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "user": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ],
+      "additionalProperties": false
+    },
+    "memberships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspace_name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin"
+            ]
+          }
+        },
+        "required": [
+          "workspace_id",
+          "workspace_name",
+          "role"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "contributions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspace_name": {
+            "type": "string"
+          },
+          "contributor_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "workspace_name",
+          "contributor_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "user",
+    "memberships",
+    "contributions"
+  ],
+  "additionalProperties": false,
+  "title": "MeResponse",
+  "$id": "https://firra.app/contracts/v1/me_response.json"
+}

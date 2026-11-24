@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/enums.json",
+  "title": "Enums",
+  "description": "Shared enums. Values must match the Postgres enum types in supabase/migrations.",
+  "$defs": {
+    "MemberRole": { "title": "MemberRole", "type": "string", "enum": ["owner", "admin"] },
+    "AppLocale": { "title": "AppLocale", "type": "string", "enum": ["en", "de", "sv", "fr", "it"] },
+    "ActorType": { "title": "ActorType", "type": "string", "enum": ["user", "mcp", "system"] },
+    "JobStatus": {
+      "title": "JobStatus",
+      "type": "string",
+      "enum": ["queued", "running", "succeeded", "failed"]
+    }
+  }
+}

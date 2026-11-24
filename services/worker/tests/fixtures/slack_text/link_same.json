@@ -1,0 +1,1 @@
+{"channels": {}, "expected": "See https://x.example/a", "input": "See <https://x.example/a|https://x.example/a>", "users": {}}

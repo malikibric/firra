@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/ai_settings.json",
+  "title": "AiSettings",
+  "description": "GET/PUT /local/ai/settings: how the owner's AI processes new mail and chat (docs/plans/local/contracts.md section 3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["executor", "backfill_months"],
+  "properties": {
+    "executor": {
+      "enum": ["claude_code", "codex", "conversation_only"],
+      "description": "claude_code and codex run the owner's signed-in CLI in the background; conversation_only waits for get_pending_mail in an AI conversation."
+    },
+    "model": {
+      "type": ["string", "null"],
+      "maxLength": 80,
+      "description": "Optional model name passed to the CLI (a cheaper, faster one is better for extraction)."
+    },
+    "backfill_months": { "type": "integer", "minimum": 1, "maximum": 12 },
+    "batch_records": { "type": "integer", "minimum": 1, "maximum": 40, "default": 20 },
+    "background_acknowledged": {
+      "type": "boolean",
+      "description": "The owner confirmed in onboarding that background processing uses their own AI subscription and may count against its limits. Required before claude_code or codex runs."
+    }
+  }
+}

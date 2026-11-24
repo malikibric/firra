@@ -1,0 +1,14 @@
+{
+  "user": {
+    "id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+    "email": "owner@firra.local"
+  },
+  "memberships": [
+    {
+      "workspace_id": "88a022e7-549a-41bc-b726-5bec9bb05664",
+      "workspace_name": "My firm",
+      "role": "owner"
+    }
+  ],
+  "contributions": []
+}

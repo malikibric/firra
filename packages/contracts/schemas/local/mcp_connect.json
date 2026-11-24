@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/mcp_connect.json",
+  "title": "McpConnect",
+  "description": "GET /local/mcp/connect: what the 'Connect AI tools' screen shows for the local (stdio) MCP server: commands, deeplinks and config snippets. Never contains a token: the stdio proxy reads the engine's token file itself.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["server_name", "items"],
+  "properties": {
+    "server_name": { "type": "string", "maxLength": 40 },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "kind", "value"],
+        "properties": {
+          "id": { "enum": ["claude_code", "codex", "cursor", "vscode", "claude_desktop"] },
+          "title": { "type": "string", "maxLength": 80 },
+          "kind": { "enum": ["command", "deeplink", "config"] },
+          "value": { "type": "string", "maxLength": 4000 },
+          "note": { "type": ["string", "null"], "maxLength": 400 }
+        }
+      }
+    }
+  }
+}

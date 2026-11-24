@@ -1,0 +1,1 @@
+{"channels": {}, "expected": "@Erik ping @oncall — the nightly sync failed with exit code 1. Retry at 06:00.", "input": "<@U5|Erik> ping <!subteam^S9|@oncall> — the nightly sync failed with exit code 1. Retry at 06:00.", "users": {}}

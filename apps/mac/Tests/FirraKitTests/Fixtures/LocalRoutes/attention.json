@@ -1,0 +1,20 @@
+{
+  "generated_at": "2026-10-05T09:37:20.438500Z",
+  "items": [
+    {
+      "client_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "name": "Synthetic Acme",
+      "status": "active",
+      "policy": "full",
+      "as_of": "2026-10-05",
+      "risk_state": "high",
+      "previous_risk_state": "watch",
+      "state_since": "2026-10-05",
+      "expansion_state": "none",
+      "strength": "moderate",
+      "play": "monitor",
+      "days_to_notice": null,
+      "drivers": []
+    }
+  ]
+}

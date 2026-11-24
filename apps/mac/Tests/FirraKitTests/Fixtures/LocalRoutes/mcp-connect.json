@@ -1,0 +1,40 @@
+{
+  "server_name": "firra",
+  "items": [
+    {
+      "id": "claude_code",
+      "title": "Claude Code",
+      "kind": "command",
+      "value": "claude mcp add firra -- /path/to/firra/.venv/bin/python -I -B -m firra.local.mcp.stdio",
+      "note": "Run in a terminal, then start Claude Code and ask about your clients."
+    },
+    {
+      "id": "codex",
+      "title": "Codex",
+      "kind": "command",
+      "value": "codex mcp add firra -- /path/to/firra/.venv/bin/python -I -B -m firra.local.mcp.stdio",
+      "note": null
+    },
+    {
+      "id": "cursor",
+      "title": "Cursor",
+      "kind": "deeplink",
+      "value": "cursor://anysphere.cursor-deeplink/mcp/install?name=firra&config=eyJjb21tYW5kIjogIi9wYXRoL3RvL2ZpcnJhLy52ZW52L2Jpbi9weXRob24iLCAiYXJncyI6IFsiLUkiLCAiLUIiLCAiLW0iLCAiZmlycmEubG9jYWwubWNwLnN0ZGlvIl19",
+      "note": null
+    },
+    {
+      "id": "vscode",
+      "title": "VS Code",
+      "kind": "deeplink",
+      "value": "vscode:mcp/install?%7B%22name%22%3A%20%22firra%22%2C%20%22command%22%3A%20%22/path/to/firra/.venv/bin/python%22%2C%20%22args%22%3A%20%5B%22-I%22%2C%20%22-B%22%2C%20%22-m%22%2C%20%22firra.local.mcp.stdio%22%5D%7D",
+      "note": null
+    },
+    {
+      "id": "claude_desktop",
+      "title": "Claude Desktop",
+      "kind": "config",
+      "value": "{\n  \"mcpServers\": {\n    \"firra\": {\n      \"command\": \"/path/to/firra/.venv/bin/python\",\n      \"args\": [\n        \"-I\",\n        \"-B\",\n        \"-m\",\n        \"firra.local.mcp.stdio\"\n      ]\n    }\n  }\n}",
+      "note": "Add to Claude Desktop config (Settings, Developer, Edit Config), restart."
+    }
+  ]
+}

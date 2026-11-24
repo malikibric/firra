@@ -1,0 +1,914 @@
+{
+  "TaskEnvelope": {
+    "valid": [
+      {
+        "workspace_id": "5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11",
+        "job_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e",
+        "idempotency_key": "diagnostics.ping:2026-09-27T10:00:00Z",
+        "type": "diagnostics.ping",
+        "payload": {
+          "requested_at": "2026-09-27T10:00:00Z"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "workspace_id": "not-a-uuid",
+        "job_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e",
+        "idempotency_key": "k",
+        "type": "diagnostics.ping",
+        "payload": {}
+      },
+      {
+        "workspace_id": "5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11",
+        "job_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e",
+        "idempotency_key": "",
+        "type": "diagnostics.ping",
+        "payload": {}
+      },
+      {
+        "workspace_id": "5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11",
+        "job_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e",
+        "idempotency_key": "k",
+        "type": "Diagnostics Ping",
+        "payload": {}
+      },
+      {
+        "workspace_id": "5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11",
+        "job_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e",
+        "idempotency_key": "k",
+        "type": "diagnostics.ping",
+        "payload": {},
+        "extra": true
+      }
+    ]
+  },
+  "DiagnosticsPingPayload": {
+    "valid": [
+      {
+        "requested_at": "2026-09-27T10:00:00Z"
+      },
+      {
+        "requested_at": "2026-09-27T12:00:00+02:00"
+      }
+    ],
+    "invalid": [
+      {},
+      {
+        "requested_at": "yesterday"
+      },
+      {
+        "requested_at": "2026-09-27T10:00:00Z",
+        "x": 1
+      }
+    ]
+  },
+  "JobStatus": {
+    "valid": ["queued", "running", "succeeded", "failed"],
+    "invalid": ["done", ""]
+  },
+  "Message": {
+    "valid": [
+      {
+        "provider": "gmail",
+        "external_id": "18c2",
+        "thread_key": "t1",
+        "occurred_at": "2026-09-01T10:00:00Z",
+        "sender": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "to": [
+          {
+            "email": "bob@firm.com"
+          }
+        ],
+        "cc": [],
+        "bcc": [],
+        "subject": "Hi",
+        "body_text": "Hello"
+      },
+      {
+        "provider": "gmail",
+        "external_id": "18c2",
+        "thread_key": null,
+        "occurred_at": "2026-09-01T10:00:00Z",
+        "sender": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "to": [
+          {
+            "email": "bob@firm.com"
+          }
+        ],
+        "cc": [],
+        "bcc": [],
+        "subject": null,
+        "body_text": null
+      }
+    ],
+    "invalid": [
+      {
+        "provider": "slack",
+        "external_id": "18c2",
+        "thread_key": "t1",
+        "occurred_at": "2026-09-01T10:00:00Z",
+        "sender": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "to": [
+          {
+            "email": "bob@firm.com"
+          }
+        ],
+        "cc": [],
+        "bcc": [],
+        "subject": "Hi",
+        "body_text": "Hello"
+      },
+      {
+        "provider": "gmail",
+        "external_id": "18c2",
+        "thread_key": "t1",
+        "occurred_at": "2026-09-01T10:00:00Z",
+        "sender": {
+          "email": "a@b.c",
+          "role": "x"
+        },
+        "to": [
+          {
+            "email": "bob@firm.com"
+          }
+        ],
+        "cc": [],
+        "bcc": [],
+        "subject": "Hi",
+        "body_text": "Hello"
+      },
+      {
+        "provider": "gmail",
+        "external_id": "18c2",
+        "thread_key": "t1",
+        "occurred_at": "2026-09-01T10:00:00Z",
+        "sender": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "cc": [],
+        "bcc": [],
+        "subject": "Hi",
+        "body_text": "Hello"
+      },
+      {
+        "provider": "gmail",
+        "external_id": "18c2",
+        "thread_key": "t1",
+        "occurred_at": "yesterday",
+        "sender": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "to": [
+          {
+            "email": "bob@firm.com"
+          }
+        ],
+        "cc": [],
+        "bcc": [],
+        "subject": "Hi",
+        "body_text": "Hello"
+      }
+    ]
+  },
+  "CalendarEventRecord": {
+    "valid": [
+      {
+        "provider": "google_calendar",
+        "external_id": "e1",
+        "starts_at": "2026-09-01T10:00:00Z",
+        "ends_at": "2026-09-01T10:30:00Z",
+        "status": "confirmed",
+        "organizer": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "attendees": [
+          {
+            "email": "alice@acme.com",
+            "name": "Alice"
+          },
+          {
+            "email": "bob@firm.com"
+          }
+        ]
+      },
+      {
+        "provider": "google_calendar",
+        "external_id": "e1",
+        "starts_at": "2026-09-01T10:00:00Z",
+        "ends_at": "2026-09-01T10:30:00Z",
+        "status": "cancelled",
+        "organizer": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "attendees": [
+          {
+            "email": "alice@acme.com",
+            "name": "Alice"
+          },
+          {
+            "email": "bob@firm.com"
+          }
+        ],
+        "rescheduled": true
+      }
+    ],
+    "invalid": [
+      {
+        "provider": "google_calendar",
+        "external_id": "e1",
+        "starts_at": "2026-09-01T10:00:00Z",
+        "ends_at": "2026-09-01T10:30:00Z",
+        "status": "held",
+        "organizer": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "attendees": [
+          {
+            "email": "alice@acme.com",
+            "name": "Alice"
+          },
+          {
+            "email": "bob@firm.com"
+          }
+        ]
+      },
+      {
+        "provider": "google_calendar",
+        "external_id": "e1",
+        "starts_at": "2026-09-01T10:00:00Z",
+        "ends_at": "2026-09-01T10:30:00Z",
+        "status": "confirmed",
+        "organizer": {
+          "email": "alice@acme.com",
+          "name": "Alice"
+        },
+        "attendees": [
+          {
+            "name": "no email"
+          }
+        ]
+      }
+    ]
+  },
+  "IngestUploadPayload": {
+    "valid": [
+      {
+        "connection_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e",
+        "format": "mbox",
+        "object_uri": "gs://firra-raw/uploads/5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11/8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e/export.mbox"
+      }
+    ],
+    "invalid": [
+      {
+        "connection_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e",
+        "format": "pst",
+        "object_uri": "gs://firra-raw/uploads/5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11/8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e/x.pst"
+      },
+      {
+        "connection_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e",
+        "format": "mbox",
+        "object_uri": "gs://other/../../etc/passwd"
+      }
+    ]
+  },
+  "HandshakeMessage": {
+    "valid": [
+      {
+        "type": "hello",
+        "protocol": 1,
+        "app_version": "1.0.0"
+      },
+      {
+        "type": "secret_set",
+        "name": "google_refresh_token:5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11",
+        "value": "1//refresh"
+      },
+      {
+        "type": "secret_set",
+        "name": "db_encryption_key",
+        "value": "AAAA"
+      },
+      {
+        "type": "ready",
+        "api_port": 49152,
+        "api_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "type": "event",
+        "event": "need_reauth",
+        "connection_id": "5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11"
+      },
+      {
+        "type": "error",
+        "code": "secret_slot_unknown"
+      }
+    ],
+    "invalid": [
+      {
+        "type": "hello",
+        "protocol": 2
+      },
+      {
+        "type": "secret_set",
+        "name": "../etc/passwd",
+        "value": "x"
+      },
+      {
+        "type": "secret_set",
+        "name": "slack_user_token:abc",
+        "value": ""
+      },
+      {
+        "type": "ready",
+        "api_port": 80,
+        "api_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "type": "ready",
+        "api_port": 49152,
+        "api_token": "short"
+      },
+      {
+        "type": "error",
+        "code": "Could not read mail from jane@example.com"
+      },
+      {
+        "type": "unknown_type"
+      },
+      {
+        "type": "ping",
+        "extra": "field"
+      }
+    ]
+  },
+  "AiExtractionOutput": {
+    "valid": [
+      {
+        "results": []
+      },
+      {
+        "results": [
+          {
+            "record": "r1",
+            "items": [
+              {
+                "kind": "complaint",
+                "quote": "we still haven't seen the September report",
+                "speaker": "jane@example.com",
+                "text": "Client says the September report has not arrived.",
+                "subtype": "delay",
+                "tone": null,
+                "owner_side": null,
+                "due_date": null,
+                "metric": null,
+                "change": null,
+                "person_name": null,
+                "role_title": null,
+                "budget_direction": null,
+                "initiative_type": null,
+                "topic_key": null
+              }
+            ]
+          },
+          {
+            "record": "r2",
+            "items": []
+          }
+        ]
+      },
+      {
+        "results": [
+          {
+            "record": "r3",
+            "items": [
+              {
+                "kind": "need",
+                "quote": "we cannot tell attribution today",
+                "speaker": "unknown",
+                "text": "Client lacks attribution reporting.",
+                "subtype": null,
+                "tone": null,
+                "owner_side": null,
+                "due_date": null,
+                "metric": null,
+                "change": null,
+                "person_name": null,
+                "role_title": null,
+                "budget_direction": null,
+                "initiative_type": null,
+                "topic_key": "attribution-reporting"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "invalid": [
+      {
+        "results": [
+          {
+            "record": "7",
+            "items": []
+          }
+        ]
+      },
+      {
+        "results": [
+          {
+            "record": "r1",
+            "items": [
+              {
+                "kind": "praise",
+                "quote": "x",
+                "speaker": "s"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "results": [
+          {
+            "record": "r1",
+            "items": [
+              {
+                "kind": "emotion_score",
+                "quote": "we still haven't seen the September report",
+                "speaker": "jane@example.com",
+                "text": "Client says the September report has not arrived.",
+                "subtype": "delay"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "results": [
+          {
+            "record": "r1",
+            "items": [
+              {
+                "kind": "complaint",
+                "quote": "we still haven't seen the September report",
+                "speaker": "jane@example.com",
+                "text": "Client says the September report has not arrived.",
+                "subtype": "delay",
+                "topic_key": "Has Spaces"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "results": [
+          {
+            "record": "r1",
+            "items": [
+              {
+                "kind": "complaint",
+                "quote": "we still haven't seen the September report",
+                "speaker": "jane@example.com",
+                "text": "Client says the September report has not arrived.",
+                "subtype": "delay",
+                "unexpected": "field"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "items": []
+      },
+      {
+        "results": [
+          {
+            "record": "r1",
+            "items": [
+              {
+                "kind": "praise",
+                "quote": "x y z",
+                "speaker": "s",
+                "text": "t"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "AiSettings": {
+    "valid": [
+      {
+        "executor": "claude_code",
+        "backfill_months": 3,
+        "background_acknowledged": true
+      },
+      {
+        "executor": "conversation_only",
+        "backfill_months": 12,
+        "batch_records": 20,
+        "model": null
+      }
+    ],
+    "invalid": [
+      {
+        "executor": "gemini",
+        "backfill_months": 3
+      },
+      {
+        "executor": "codex",
+        "backfill_months": 0
+      },
+      {
+        "executor": "codex",
+        "backfill_months": 3,
+        "batch_records": 99
+      }
+    ]
+  },
+  "EngineStatus": {
+    "valid": [
+      {
+        "engine_version": "1.0.0",
+        "database": "ready",
+        "connections": [],
+        "ai": {
+          "executor": "claude_code",
+          "tools": [
+            {
+              "tool": "claude_code",
+              "installed": true,
+              "version": "2.1.289",
+              "signed_in": true
+            }
+          ],
+          "queue": {
+            "pending": 37,
+            "done": 120,
+            "rejected_items": 4
+          },
+          "state": "working"
+        },
+        "relay": {
+          "state": "offline"
+        },
+        "disk": {
+          "data_bytes": 1024
+        }
+      },
+      {
+        "engine_version": "1.0.0",
+        "database": "ready",
+        "filevault": "off",
+        "connections": [
+          {
+            "id": "5b0c3f7e-1f0a-4c55-9d5e-2f8d6f0f7a11",
+            "provider": "slack",
+            "account_label": "Acme workspace",
+            "state": "idle",
+            "last_synced_at": "2026-10-05T07:30:00Z",
+            "backfill_months": 3
+          }
+        ],
+        "ai": {
+          "executor": "claude_code",
+          "tools": [
+            {
+              "tool": "claude_code",
+              "installed": true,
+              "version": "2.1.289",
+              "signed_in": true
+            }
+          ],
+          "queue": {
+            "pending": 37,
+            "done": 120,
+            "rejected_items": 4
+          },
+          "state": "working"
+        },
+        "relay": {
+          "state": "online",
+          "device_id": "8e7b9d2a-3c4f-4b1a-a9e6-0d1c2b3a4f5e"
+        },
+        "disk": {
+          "data_bytes": 0
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "engine_version": "1.0.0",
+        "database": "ready",
+        "connections": [],
+        "ai": {
+          "executor": "claude_code",
+          "tools": [
+            {
+              "tool": "claude_code",
+              "installed": true,
+              "version": "2.1.289",
+              "signed_in": true
+            }
+          ],
+          "queue": {
+            "pending": 37,
+            "done": 120,
+            "rejected_items": 4
+          },
+          "state": "working"
+        },
+        "relay": {
+          "state": "offline"
+        }
+      },
+      {
+        "engine_version": "1.0.0",
+        "database": "on fire",
+        "connections": [],
+        "ai": {
+          "executor": "claude_code",
+          "tools": [
+            {
+              "tool": "claude_code",
+              "installed": true,
+              "version": "2.1.289",
+              "signed_in": true
+            }
+          ],
+          "queue": {
+            "pending": 37,
+            "done": 120,
+            "rejected_items": 4
+          },
+          "state": "working"
+        },
+        "relay": {
+          "state": "offline"
+        },
+        "disk": {
+          "data_bytes": 1
+        }
+      },
+      {
+        "engine_version": "1.0.0",
+        "database": "ready",
+        "connections": [
+          {
+            "id": "x",
+            "provider": "outlook",
+            "account_label": "a",
+            "state": "idle"
+          }
+        ],
+        "ai": {
+          "executor": "claude_code",
+          "tools": [
+            {
+              "tool": "claude_code",
+              "installed": true,
+              "version": "2.1.289",
+              "signed_in": true
+            }
+          ],
+          "queue": {
+            "pending": 37,
+            "done": 120,
+            "rejected_items": 4
+          },
+          "state": "working"
+        },
+        "relay": {
+          "state": "offline"
+        },
+        "disk": {
+          "data_bytes": 1
+        }
+      }
+    ]
+  },
+  "ChatMessage": {
+    "valid": [
+      {
+        "provider": "slack",
+        "external_id": "C0123ABC:1759312200.000100",
+        "channel": {
+          "id": "C0123ABC",
+          "name": "acme-shared",
+          "kind": "private",
+          "is_ext_shared": true
+        },
+        "thread_key": null,
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {
+          "slack_id": "U0456DEF",
+          "name": "Sam",
+          "email": null,
+          "team_id": "T0999",
+          "is_external": true
+        },
+        "text": "We still need the Q3 attribution report.",
+        "edited": false,
+        "permalink": "https://acme.slack.com/archives/C0123ABC/p1759312200000100"
+      },
+      {
+        "provider": "slack",
+        "external_id": "C0123ABC:1759312200.000100",
+        "channel": {
+          "id": "C0123ABC",
+          "name": "acme-shared",
+          "kind": "private",
+          "is_ext_shared": true
+        },
+        "thread_key": "1759300000.000200",
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {
+          "slack_id": "U0456DEF",
+          "name": "Sam",
+          "email": null,
+          "team_id": "T0999",
+          "is_external": true
+        },
+        "text": "We still need the Q3 attribution report.",
+        "edited": true,
+        "permalink": null
+      },
+      {
+        "provider": "slack",
+        "external_id": "D1:1.2",
+        "channel": {
+          "id": "D1",
+          "kind": "direct"
+        },
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {
+          "slack_id": "U1"
+        },
+        "text": "hi"
+      }
+    ],
+    "invalid": [
+      {
+        "provider": "teams",
+        "external_id": "C0123ABC:1759312200.000100",
+        "channel": {
+          "id": "C0123ABC",
+          "name": "acme-shared",
+          "kind": "private",
+          "is_ext_shared": true
+        },
+        "thread_key": null,
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {
+          "slack_id": "U0456DEF",
+          "name": "Sam",
+          "email": null,
+          "team_id": "T0999",
+          "is_external": true
+        },
+        "text": "We still need the Q3 attribution report.",
+        "edited": false,
+        "permalink": "https://acme.slack.com/archives/C0123ABC/p1759312200000100"
+      },
+      {
+        "provider": "slack",
+        "external_id": "C0123ABC:1759312200.000100",
+        "channel": {
+          "id": "C1",
+          "kind": "channel"
+        },
+        "thread_key": null,
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {
+          "slack_id": "U0456DEF",
+          "name": "Sam",
+          "email": null,
+          "team_id": "T0999",
+          "is_external": true
+        },
+        "text": "We still need the Q3 attribution report.",
+        "edited": false,
+        "permalink": "https://acme.slack.com/archives/C0123ABC/p1759312200000100"
+      },
+      {
+        "provider": "slack",
+        "external_id": "x",
+        "channel": {
+          "id": "C0123ABC",
+          "name": "acme-shared",
+          "kind": "private",
+          "is_ext_shared": true
+        },
+        "thread_key": null,
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {
+          "slack_id": "U0456DEF",
+          "name": "Sam",
+          "email": null,
+          "team_id": "T0999",
+          "is_external": true
+        },
+        "text": "We still need the Q3 attribution report.",
+        "edited": false,
+        "permalink": "https://acme.slack.com/archives/C0123ABC/p1759312200000100"
+      },
+      {
+        "provider": "slack",
+        "external_id": "C0123ABC:1759312200.000100",
+        "channel": {
+          "id": "C0123ABC",
+          "name": "acme-shared",
+          "kind": "private",
+          "is_ext_shared": true
+        },
+        "thread_key": null,
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {},
+        "text": "We still need the Q3 attribution report.",
+        "edited": false,
+        "permalink": "https://acme.slack.com/archives/C0123ABC/p1759312200000100"
+      },
+      {
+        "provider": "slack",
+        "external_id": "C0123ABC:1759312200.000100",
+        "channel": {
+          "id": "C0123ABC",
+          "name": "acme-shared",
+          "kind": "private",
+          "is_ext_shared": true
+        },
+        "thread_key": null,
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {
+          "slack_id": "U0456DEF",
+          "name": "Sam",
+          "email": null,
+          "team_id": "T0999",
+          "is_external": true
+        },
+        "edited": false,
+        "permalink": "https://acme.slack.com/archives/C0123ABC/p1759312200000100"
+      },
+      {
+        "provider": "slack",
+        "external_id": "C0123ABC:1759312200.000100",
+        "channel": {
+          "id": "C0123ABC",
+          "name": "acme-shared",
+          "kind": "private",
+          "is_ext_shared": true
+        },
+        "thread_key": null,
+        "occurred_at": "2026-10-01T09:30:00Z",
+        "author": {
+          "slack_id": "U0456DEF",
+          "name": "Sam",
+          "email": null,
+          "team_id": "T0999",
+          "is_external": true
+        },
+        "text": "We still need the Q3 attribution report.",
+        "edited": false,
+        "permalink": "https://acme.slack.com/archives/C0123ABC/p1759312200000100",
+        "extra": 1
+      },
+      {
+        "provider": "slack",
+        "external_id": "C0123ABC:1759312200.000100",
+        "channel": {
+          "id": "C0123ABC",
+          "name": "acme-shared",
+          "kind": "private",
+          "is_ext_shared": true
+        },
+        "thread_key": null,
+        "occurred_at": "yesterday",
+        "author": {
+          "slack_id": "U0456DEF",
+          "name": "Sam",
+          "email": null,
+          "team_id": "T0999",
+          "is_external": true
+        },
+        "text": "We still need the Q3 attribution report.",
+        "edited": false,
+        "permalink": "https://acme.slack.com/archives/C0123ABC/p1759312200000100"
+      }
+    ]
+  }
+}

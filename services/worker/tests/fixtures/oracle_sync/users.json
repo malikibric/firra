@@ -1,0 +1,6 @@
+[
+  {"id": "U-OWNER", "name": "Owner", "email": "owner@firra.local", "team": "T-OWN"},
+  {"id": "U-EXT", "name": "External Dana", "email": "dana@acme.com", "team": "T-EXT"},
+  {"id": "U-OWN", "name": "Owner Teammate", "email": "mate@firra.local", "team": "T-OWN"},
+  {"id": "U-COL", "name": "Colleague", "email": "colleague@firra.local", "team": "T-OWN"}
+]

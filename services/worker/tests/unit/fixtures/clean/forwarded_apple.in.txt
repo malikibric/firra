@@ -1,0 +1,10 @@
+Ana, can you look at this?
+
+Begin forwarded message:
+
+From: Tom Hale <tom@acme.com>
+Subject: Hiring
+Date: 31 August 2026 at 16:12:00 CEST
+To: Jane Doe <jane@acme.com>
+
+We are hiring an in-house SEO lead this autumn.

@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "id": "state:0f77a125-d15d-47e3-ba6c-3e93231ee188",
+      "occurred_at": "2026-10-05T00:00:00Z",
+      "client_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "kind": "state_change",
+      "from": "watch",
+      "to": "high"
+    },
+    {
+      "id": "outcome:fd26be27-323e-497a-a957-60d43bf47b15",
+      "occurred_at": "2026-10-05T00:00:00Z",
+      "client_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "kind": "outcome",
+      "event": "renewed"
+    }
+  ],
+  "next_cursor": null
+}

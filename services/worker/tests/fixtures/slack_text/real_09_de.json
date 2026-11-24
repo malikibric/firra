@@ -1,0 +1,1 @@
+{"channels": {"C2": "projekt-alpen"}, "expected": "Hallo @Lena, der Vertrag für die Münchner Niederlassung liegt in #projekt-alpen. Bitte prüfe § 4 bis Freitag.", "input": "Hallo <@U6|Lena>, der Vertrag für die Münchner Niederlassung liegt in <#C2|projekt-alpen>. Bitte prüfe _§ 4_ bis Freitag.", "users": {}}

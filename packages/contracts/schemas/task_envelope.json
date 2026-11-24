@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/task_envelope.json",
+  "title": "TaskEnvelope",
+  "description": "Body of every Cloud Tasks request from apps/api to services/worker. The payload is validated against the schema of its task type.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workspace_id", "job_id", "idempotency_key", "type", "payload"],
+  "properties": {
+    "workspace_id": { "type": "string", "format": "uuid" },
+    "job_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "maxLength": 100
+    },
+    "payload": { "type": "object" }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/retention_settings.json",
+  "title": "RetentionSettings",
+  "description": "GET/PUT /local/retention: how long Firra keeps the text of mail, Slack messages and meeting titles. Older text is deleted (dates, authors, verified quotes and everything derived stay). null keeps text until the owner deletes it; default 12 months. Shortening applies immediately.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["body_months"],
+  "properties": {
+    "body_months": { "type": ["integer", "null"], "minimum": 1, "maximum": 120 }
+  }
+}

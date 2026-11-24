@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/ai_extraction_output.json",
+  "title": "AiExtractionOutput",
+  "description": "What the owner's AI must return for one packet of records (docs/plans/local/contracts.md section 4). The same schema is passed to `claude -p --json-schema`, `codex exec --output-schema` and used by submit_extractions. Items are the extract.v5 items; every quote is verified verbatim by Firra before anything is stored. Every item property is required (null when it does not apply): OpenAI strict structured output, used by codex exec, accepts nothing else.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["results"],
+  "properties": {
+    "results": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["record", "items"],
+        "properties": {
+          "record": {
+            "type": "string",
+            "pattern": "^r[0-9]{1,3}$",
+            "description": "The packet-local handle (r1, r2, ...) of the source record the items come from."
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 30,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "quote",
+                "speaker",
+                "text",
+                "subtype",
+                "tone",
+                "owner_side",
+                "due_date",
+                "metric",
+                "change",
+                "person_name",
+                "role_title",
+                "budget_direction",
+                "initiative_type",
+                "topic_key"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "request",
+                    "need",
+                    "commitment",
+                    "praise",
+                    "complaint",
+                    "goal",
+                    "stakeholder_change",
+                    "in_house_or_competitor_mention",
+                    "renewal_or_budget_talk",
+                    "result_reported",
+                    "tone",
+                    "initiative"
+                  ]
+                },
+                "quote": {
+                  "type": "string",
+                  "maxLength": 600
+                },
+                "speaker": {
+                  "type": "string",
+                  "maxLength": 320
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "subtype": {
+                  "enum": ["delay", "quality", "communication", "other", null],
+                  "type": ["string", "null"]
+                },
+                "tone": {
+                  "enum": ["positive", "neutral", "negative", null],
+                  "type": ["string", "null"]
+                },
+                "owner_side": {
+                  "enum": ["firm", "client", null],
+                  "type": ["string", "null"]
+                },
+                "due_date": {
+                  "type": ["string", "null"],
+                  "maxLength": 10
+                },
+                "metric": {
+                  "type": ["string", "null"],
+                  "maxLength": 200
+                },
+                "change": {
+                  "enum": ["joined", "left", "new_role", null],
+                  "type": ["string", "null"]
+                },
+                "person_name": {
+                  "type": ["string", "null"],
+                  "maxLength": 200
+                },
+                "role_title": {
+                  "type": ["string", "null"],
+                  "maxLength": 200
+                },
+                "budget_direction": {
+                  "enum": ["grow", "cut", "renewal", "neutral", null],
+                  "type": ["string", "null"]
+                },
+                "initiative_type": {
+                  "enum": [
+                    "market",
+                    "product",
+                    "team",
+                    "hire",
+                    "rebrand",
+                    "funding",
+                    "other",
+                    null
+                  ],
+                  "type": ["string", "null"]
+                },
+                "topic_key": {
+                  "type": ["string", "null"],
+                  "maxLength": 60,
+                  "pattern": "^[a-z0-9][a-z0-9_-]*$",
+                  "description": "request and need only: a short lowercase slug naming the topic, so the engine can group mentions without embeddings."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

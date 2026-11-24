@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/records/chat_message.json",
+  "title": "ChatMessage",
+  "description": "Canonical chat message produced by the Slack connector before minimization (docs/plans/local-v1.md F2b). Content is untrusted data. Only messages of mapped channels, or direct messages with people of a mapped client, are ever stored.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["provider", "external_id", "channel", "occurred_at", "author", "text"],
+  "properties": {
+    "provider": { "type": "string", "enum": ["slack"] },
+    "external_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 512,
+      "description": "<channel id>:<message ts>, unique per Slack workspace."
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "name": { "type": ["string", "null"], "maxLength": 200 },
+        "kind": { "type": "string", "enum": ["public", "private", "direct", "group_direct"] },
+        "is_ext_shared": {
+          "type": ["boolean", "null"],
+          "description": "Slack Connect channel shared with another organisation."
+        }
+      }
+    },
+    "thread_key": {
+      "type": ["string", "null"],
+      "maxLength": 512,
+      "description": "thread_ts of the parent message; null for a message outside a thread."
+    },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slack_id"],
+      "properties": {
+        "slack_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "name": { "type": ["string", "null"], "maxLength": 200 },
+        "email": {
+          "type": ["string", "null"],
+          "maxLength": 320,
+          "description": "Only when Slack exposes it (users:read.email); external Slack Connect users often have none."
+        },
+        "team_id": { "type": ["string", "null"], "maxLength": 64 },
+        "is_external": {
+          "type": ["boolean", "null"],
+          "description": "True when the author belongs to another organisation (Slack Connect)."
+        }
+      }
+    },
+    "text": { "type": "string", "maxLength": 40000, "description": "mrkdwn text before cleaning." },
+    "edited": { "type": "boolean", "default": false },
+    "permalink": { "type": ["string", "null"], "maxLength": 2000 }
+  }
+}

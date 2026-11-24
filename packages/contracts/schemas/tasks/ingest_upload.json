@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/ingest_upload.json",
+  "title": "IngestUploadPayload",
+  "description": "Payload of ingest.upload: parse an uploaded .mbox/.eml file stored in the raw bucket.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["connection_id", "object_uri", "format"],
+  "properties": {
+    "connection_id": { "type": "string", "format": "uuid" },
+    "object_uri": {
+      "type": "string",
+      "pattern": "^gs://[a-z0-9._-]+/uploads/[0-9a-f-]{36}/[0-9a-f-]{36}/[A-Za-z0-9._-]{1,200}$"
+    },
+    "format": { "type": "string", "enum": ["mbox", "eml"] }
+  }
+}

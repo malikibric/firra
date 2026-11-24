@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/backup_restore_request.json",
+  "title": "BackupRestoreRequest",
+  "description": "POST /local/backup/restore: restores into an empty workspace (a fresh install). A wrong phrase or a changed file is refused with the same error.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["backup_b64", "phrase"],
+  "properties": {
+    "backup_b64": { "type": "string", "minLength": 1, "maxLength": 33554432 },
+    "phrase": { "type": "string", "minLength": 1, "maxLength": 128 }
+  }
+}

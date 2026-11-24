@@ -1,0 +1,66 @@
+-- Shared pgTAP helpers for the derived tables. Included (inside the test's transaction) via \ir
+-- after _helpers.psql.
+-- Test helpers: minimal valid parent rows per table and their evidence links.
+create function tests.insert_parent(p_table text, p_ws uuid, p_client uuid, p_record uuid, p_key text)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_id uuid;
+begin
+  case p_table
+    when 'commitment' then
+      insert into public.commitment (workspace_id, client_id, owner_side, text, stated_at, dedupe_key)
+      values (p_ws, p_client, 'firm', 'Send the report', now(), p_key) returning id into v_id;
+    when 'client_goal' then
+      insert into public.client_goal (workspace_id, client_id, text, stated_at, dedupe_key)
+      values (p_ws, p_client, 'Double qualified leads', now(), p_key) returning id into v_id;
+    when 'request' then
+      insert into public.request (workspace_id, client_id, origin_kind, text, source_record_id, occurred_at, dedupe_key)
+      values (p_ws, p_client, 'request', 'Wants attribution reporting', p_record, now(), p_key) returning id into v_id;
+    when 'latent_need' then
+      insert into public.latent_need (workspace_id, client_id, mention_count, thread_count, first_seen_at, last_seen_at,
+                                      cluster_key, rule_version)
+      values (p_ws, p_client, 3, 2, now() - interval '10 days', now(), p_key, 'v1') returning id into v_id;
+    when 'signal' then
+      insert into public.signal (workspace_id, client_id, type, severity, occurred_at, rule_version, basis, dedupe_key)
+      values (p_ws, p_client, 'delivery_complaint', 'high', now(), 'v1', 'evidence', p_key) returning id into v_id;
+    when 'decision_card' then
+      insert into public.decision_card (workspace_id, client_id, week, kind, title, body, locale, score, priority,
+                                        inputs, model, prompt_version, dedupe_key, play, facts, interpretation,
+                                        recommendation, strength)
+      values (p_ws, p_client, '2026-09-28', 'risk', 'Fix delivery first', 'Body', 'en', 1, 1, '{}', 'm', 'cards.v1', p_key,
+              'fix_first', '[{"id":"f1","text":"Two late reports","basis":"evidence"}]', 'Why it matters',
+              'What to do', 'moderate')
+      returning id into v_id;
+  end case;
+  return v_id;
+end;
+$$;
+
+create function tests.link_evidence(p_table text, p_ws uuid, p_client uuid, p_parent uuid, p_evidence uuid)
+returns void
+language plpgsql
+as $$
+declare
+  v_link text := case p_table when 'decision_card' then 'decision_evidence' else p_table || '_evidence' end;
+  v_column text := p_table || '_id';
+begin
+  execute format('insert into public.%I (workspace_id, %I, evidence_id, client_id) values ($1, $2, $3, $4)',
+                 v_link, v_column) using p_ws, p_parent, p_evidence, p_client;
+end;
+$$;
+
+create function tests.count_rows(p_table text, p_client uuid default null)
+returns integer
+language plpgsql
+as $$
+declare
+  v_count integer;
+begin
+  execute format('select count(*)::int from public.%I where $1 is null or client_id = $1', p_table)
+    into v_count using p_client;
+  return v_count;
+end;
+$$;
+grant execute on all functions in schema tests to anon, authenticated;

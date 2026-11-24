@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "useful",
+        "already_known",
+        "wrong",
+        "not_now"
+      ]
+    },
+    "action": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "taken",
+            "planned",
+            "none"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "note": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 1000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "verdict"
+  ],
+  "additionalProperties": false,
+  "title": "FeedbackRequest",
+  "$id": "https://firra.app/contracts/v1/feedback_request.json"
+}

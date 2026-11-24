@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/memory_rebuild.json",
+  "title": "MemoryRebuildPayload",
+  "description": "Rebuild deterministic account memory for every visible client in one workspace.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trigger", "as_of"],
+  "properties": {
+    "trigger": { "type": "string", "enum": ["processing", "sweep"] },
+    "as_of": { "type": ["string", "null"], "format": "date" }
+  }
+}

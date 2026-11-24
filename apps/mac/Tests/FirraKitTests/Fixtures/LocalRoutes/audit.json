@@ -1,0 +1,185 @@
+{
+  "items": [
+    {
+      "id": "bfc4ae21-797d-4fb0-87fa-6960c416f49a",
+      "action": "read.replay_client",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "client",
+      "target_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "created_at": "2026-10-05T09:37:20.533125Z"
+    },
+    {
+      "id": "997776e5-d9ad-46ed-b135-c6acd4c972b7",
+      "action": "read.replay_runs",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.529094Z"
+    },
+    {
+      "id": "ac53adc7-ce67-4bc5-af00-2bfb8b498de2",
+      "action": "read.setup_services",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.519915Z"
+    },
+    {
+      "id": "8fcbb86d-5f24-47bd-9ed4-cbbf0f39f3af",
+      "action": "read.setup_clients",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.516047Z"
+    },
+    {
+      "id": "5f150c63-990f-4314-ad7a-d070965eeec1",
+      "action": "read.routines",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.500391Z"
+    },
+    {
+      "id": "c3851d66-d22e-4919-8ae4-5a19f3b34e0a",
+      "action": "read.decisions",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.497627Z"
+    },
+    {
+      "id": "e1cb5a5e-91f9-4325-8e07-a06636723d00",
+      "action": "read.evidence",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "evidence",
+      "target_id": "dfdbc597-73e9-427d-8d09-b5c752359936",
+      "created_at": "2026-10-05T09:37:20.493548Z"
+    },
+    {
+      "id": "0701bd98-b033-46e8-9257-5588515d1ede",
+      "action": "read.client_evidence",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "client",
+      "target_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "created_at": "2026-10-05T09:37:20.487560Z"
+    },
+    {
+      "id": "8a1783e7-d743-4977-8476-92edabc5f778",
+      "action": "read.client_timeline",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "client",
+      "target_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "created_at": "2026-10-05T09:37:20.481049Z"
+    },
+    {
+      "id": "18934df9-e04d-4f41-b65b-236fe83d3359",
+      "action": "read.client_detail",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "client",
+      "target_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "created_at": "2026-10-05T09:37:20.470249Z"
+    },
+    {
+      "id": "42f0a33f-114f-45ef-bfde-9c3c982cb6a3",
+      "action": "read.clients",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.458999Z"
+    },
+    {
+      "id": "2559bae1-6485-4e8d-b748-6dc168165815",
+      "action": "read.meeting_briefs",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.455553Z"
+    },
+    {
+      "id": "26939bf1-530f-4b57-a9ba-23cc1a201792",
+      "action": "read.changes",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.452180Z"
+    },
+    {
+      "id": "0a246eec-e0b2-4365-9b71-52440a36a88e",
+      "action": "read.attention",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": null,
+      "target_id": null,
+      "created_at": "2026-10-05T09:37:20.440288Z"
+    },
+    {
+      "id": "95f4d816-d725-40aa-b10a-3620a09ffbdd",
+      "action": "outcome.recorded",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "outcome",
+      "target_id": "fd26be27-323e-497a-a957-60d43bf47b15",
+      "created_at": "2026-10-05T09:37:20.433892Z"
+    },
+    {
+      "id": "86c3e87f-84bc-4620-ad75-eee4e04c4e66",
+      "action": "decision_feedback.recorded",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "decision_card",
+      "target_id": "3772cf09-cac1-4eee-b4a4-5e839f5d1c43",
+      "created_at": "2026-10-05T09:37:20.427694Z"
+    },
+    {
+      "id": "da2f59dc-f93c-43be-883c-a7a0cb492f55",
+      "action": "routine.enabled_changed",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "routine",
+      "target_id": "839ccea5-0066-4c4b-97f1-c216034e1fd4",
+      "created_at": "2026-10-05T09:37:20.421412Z"
+    },
+    {
+      "id": "5cf8cba3-350f-47b3-94cd-f858f81adc05",
+      "action": "service.created",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "workspace_service",
+      "target_id": "42213204-2a8d-4b47-b5bd-5e14716c0c26",
+      "created_at": "2026-10-05T09:37:20.416912Z"
+    },
+    {
+      "id": "a45b77c8-3dd7-4874-8175-34ac434f7310",
+      "action": "client.domains_set",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "client",
+      "target_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "created_at": "2026-10-05T09:37:20.409942Z"
+    },
+    {
+      "id": "fc66586d-885c-4b60-b9cf-491d59332e2c",
+      "action": "workspace.created",
+      "actor_type": "user",
+      "actor_id": "e72ae431-807a-4c9c-9b04-1b4541b8b7a4",
+      "target_type": "workspace",
+      "target_id": "88a022e7-549a-41bc-b726-5bec9bb05664",
+      "created_at": "2026-10-05T09:37:18.912712Z"
+    }
+  ],
+  "next_page": null
+}

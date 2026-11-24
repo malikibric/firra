@@ -1,0 +1,1 @@
+{"channels": {"C9": "random"}, "expected": "Heads up @channel: deploys frozen until the incident review. Thread with details in #random. cc @Sofia", "input": "Heads up <!channel>: deploys frozen until the incident review. Thread with details in <#C9|random>. cc <@U4|Sofia>", "users": {}}

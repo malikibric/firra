@@ -1,0 +1,50 @@
+# uv workspace root (virtual: not a package itself).
+[tool.uv.workspace]
+members = ["services/worker", "services/relay", "packages/contracts/python"]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.14",
+  "mypy>=1.18",
+  "pytest>=8.4",
+  "datamodel-code-generator[ruff]>=0.82.0",
+]
+
+# One pytest config for the whole uv workspace (pytest only reads the nearest file that has
+# this section, so per-package sections would be ignored when running from the root).
+[tool.pytest.ini_options]
+testpaths = ["services/worker/tests", "services/relay/tests", "packages/contracts/python/tests"]
+markers = ["integration: needs a local Supabase Postgres (supabase start)"]
+addopts = "-m 'not integration' --import-mode=importlib"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+  "packages/contracts/python/firra_contracts/generated",
+  "packages/contracts/python/firra_contracts/generated_v1",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "S", "SIM", "RUF", "PTH", "TID", "ASYNC", "DTZ", "T20"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["firra", "firra_contracts"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106"]
+# Synthetic dataset tooling: a CLI that prints, and seeded (reproducible) randomness by design.
+"**/firra/synthetic/**" = ["T201", "S311"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+exclude = ["\\.venv/"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true

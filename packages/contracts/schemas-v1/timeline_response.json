@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "occurred_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "client_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "const": "state_change"
+              },
+              "from": {
+                "type": "string",
+                "enum": [
+                  "stable",
+                  "watch",
+                  "elevated",
+                  "high"
+                ]
+              },
+              "to": {
+                "type": "string",
+                "enum": [
+                  "stable",
+                  "watch",
+                  "elevated",
+                  "high"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "occurred_at",
+              "client_id",
+              "kind",
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "occurred_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "client_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "const": "signal"
+              },
+              "type": {
+                "type": "string"
+              },
+              "change": {
+                "type": "string",
+                "enum": [
+                  "opened",
+                  "severity_changed",
+                  "reopened",
+                  "resolved"
+                ]
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "evidence_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "occurred_at",
+              "client_id",
+              "kind",
+              "type",
+              "change",
+              "severity",
+              "evidence_ids"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "occurred_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "client_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "const": "commitment"
+              },
+              "change": {
+                "type": "string",
+                "enum": [
+                  "created",
+                  "due",
+                  "closed"
+                ]
+              },
+              "owner_side": {
+                "type": "string",
+                "enum": [
+                  "firm",
+                  "client"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "late",
+                  "done",
+                  "cancelled"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "occurred_at",
+              "client_id",
+              "kind",
+              "change",
+              "owner_side",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "occurred_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "client_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "kind": {
+                "type": "string",
+                "const": "outcome"
+              },
+              "event": {
+                "type": "string",
+                "enum": [
+                  "churned",
+                  "renewed",
+                  "expanded",
+                  "price_increase",
+                  "downgrade",
+                  "referral"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "occurred_at",
+              "client_id",
+              "kind",
+              "event"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "next_cursor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "items",
+    "next_cursor"
+  ],
+  "additionalProperties": false,
+  "title": "TimelineResponse",
+  "$id": "https://firra.app/contracts/v1/timeline_response.json"
+}

@@ -1,0 +1,244 @@
+# Commitment-watch scenario oracle (T46b): executable form of the rules in
+# the original task spec. Written from that brief, `commitment_status` and the fixed
+# Candidate interface, not from Codex's source; the implementer must not edit expectations. A
+# disagreement is raised with the lead — either the brief or the code is wrong.
+#
+# Format
+#   Each scenario seeds a fresh local workspace and states the exact Candidates expected from
+#   `CommitmentWatch.candidates(repo, workspace_id, as_of)`.
+#   as_of:            the scan day (date). `since` comes from previous_runs, else as_of - 1 day,
+#                     never more than 7 days back.
+#   previous_runs:    optional routine_run rows {status: succeeded|failed, scheduled_for,
+#                     kind: commitment_watch (default) | morning_scan}.
+#   seed.clients:     {key, status (default active), policy (default full)}. Omitted -> one client
+#                     {key: c, full, active}.
+#   seed.commitments: {client, owner_side (default firm), due_date (nullable), status (default open;
+#                     done|cancelled set closed_at automatically), evidence (labels)}. Every
+#                     commitment must cite at least one evidence row (a deferred DB constraint), so
+#                     the client must be `full` when it is inserted.
+#   seed.policy_changes: optional [{client, policy}] applied after the commitments with a direct
+#                     `update public.client set policy = ...` (not `set_client_policy`, which would
+#                     delete the derived rows), exercising the source's own policy filter.
+#   expect:           list of {client, trigger (commitment_late), kind (commitment_watch),
+#                     owner_side, evidence}; `evidence` is compared as a set, the rest exactly.
+#   The runner also seeds a second workspace whose commitment just became late and asserts no
+#   candidate comes from it (requirement 6).
+#   Requirement 7 (the end-to-end run through the runner) is the dedicated test
+#   `test_commitment_watch_end_to_end` in test_commitment_watch_oracle.py.
+
+scenarios:
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 1: a commitment that became late inside the window (late on as_of, not on since).
+  # ----------------------------------------------------------------------------------------------
+  - id: late-inside-window
+    why: an open firm commitment due after the last run just became late
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-03", evidence: [e1]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: firm, evidence: [e1]}
+
+  - id: late-due-day-before-asof
+    why: due the day before as_of is late on as_of and not late on since, so it is a candidate
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-04", evidence: [e1]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: firm, evidence: [e1]}
+
+  - id: not-late-due-on-asof
+    why: a commitment due on as_of is not late yet
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-05", evidence: [e1]}
+    expect: []
+
+  - id: not-late-due-after-asof
+    why: a commitment due after as_of is not late yet
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-06", evidence: [e1]}
+    expect: []
+
+  - id: already-late-before-since
+    why: a commitment due before the last run was already late, so the window excludes it
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-09-30", evidence: [e1]}
+    expect: []
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 2: never candidates — no due date, done, cancelled.
+  # ----------------------------------------------------------------------------------------------
+  - id: no-due-date-never-late
+    why: a commitment without a due date is never late
+    as_of: "2026-10-05"
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: null, evidence: [e1]}
+    expect: []
+
+  - id: done-commitment-overdue
+    why: a done commitment is closed and never a candidate even when overdue
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-09-30", status: done, evidence: [e1]}
+    expect: []
+
+  - id: cancelled-commitment-overdue
+    why: a cancelled commitment is closed and never a candidate even when overdue
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-09-30", status: cancelled, evidence: [e1]}
+    expect: []
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 3: both owner sides produce a candidate carrying their owner_side.
+  # ----------------------------------------------------------------------------------------------
+  - id: owner-client
+    why: a client-owned commitment that just became late is a candidate with owner_side client
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: client, due_date: "2026-10-03", evidence: [e1]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: client, evidence: [e1]}
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 4: evidence links and one candidate per commitment.
+  # ----------------------------------------------------------------------------------------------
+  - id: evidence-links-returned
+    why: a full client's candidate carries every evidence link of the commitment
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-03", evidence: [e1, e2]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: firm, evidence: [e1, e2]}
+
+  - id: multiple-commitments-separate
+    why: two late commitments of one client are two candidates (merging is the engine's job)
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-03", evidence: [e1]}
+        - {client: c, owner_side: client, due_date: "2026-10-04", evidence: [e2]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: firm, evidence: [e1]}
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: client, evidence: [e2]}
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 5: since from the last succeeded commitment_watch run, one day back, capped at 7.
+  # ----------------------------------------------------------------------------------------------
+  - id: since-none-means-one-day-back
+    why: with no run yet since is as_of - 1, so a commitment due on as_of - 1 just became late and one due earlier was already late (the due-on-since boundary is included; see Report)
+    as_of: "2026-10-05"
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-04", evidence: [e1]}
+        - {client: c, owner_side: client, due_date: "2026-10-03", evidence: [e2]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: firm, evidence: [e1]}
+
+  - id: since-from-last-succeeded-run
+    why: since is the latest succeeded run, so a change before it is excluded and one after it is included
+    as_of: "2026-10-05"
+    previous_runs:
+      - {status: succeeded, scheduled_for: "2026-10-01"}
+      - {status: succeeded, scheduled_for: "2026-10-03"}
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-02", evidence: [e1]}
+        - {client: c, owner_side: client, due_date: "2026-10-04", evidence: [e2]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: client, evidence: [e2]}
+
+  - id: since-failed-run-ignored
+    why: a later failed run does not move since, so a change after the succeeded run is included
+    as_of: "2026-10-05"
+    previous_runs:
+      - {status: succeeded, scheduled_for: "2026-10-01"}
+      - {status: failed, scheduled_for: "2026-10-04"}
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-02", evidence: [e1]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: firm, evidence: [e1]}
+
+  - id: since-capped-at-seven-days
+    why: a run ten days back is capped at seven, so an eight-day-old change is already late while a six-day-old one is included
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-09-25"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-09-27", evidence: [e1]}
+        - {client: c, owner_side: client, due_date: "2026-09-29", evidence: [e2]}
+    expect:
+      - {client: c, trigger: commitment_late, kind: commitment_watch, owner_side: client, evidence: [e2]}
+
+  - id: since-other-routine-ignored
+    why: a succeeded morning_scan run does not move commitment_watch's since
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01", kind: morning_scan}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-02", evidence: [e1]}
+    expect: []
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 6: excluded, churned, prospect and metadata_only clients produce nothing.
+  # ----------------------------------------------------------------------------------------------
+  - id: excluded-policy-nothing
+    why: a client whose policy became excluded after the late commitment was stored produces nothing
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-03", evidence: [e1]}
+      policy_changes:
+        - {client: c, policy: excluded}
+    expect: []
+
+  - id: churned-prospect-nothing
+    why: churned and prospect clients never produce a candidate, an active full one does
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      clients:
+        - {key: ok, status: active, policy: full}
+        - {key: ch, status: churned, policy: full}
+        - {key: pr, status: prospect, policy: full}
+      commitments:
+        - {client: ok, owner_side: firm, due_date: "2026-10-03", evidence: [e1]}
+        - {client: ch, owner_side: firm, due_date: "2026-10-03", evidence: [e2]}
+        - {client: pr, owner_side: firm, due_date: "2026-10-03", evidence: [e3]}
+    expect:
+      - {client: ok, trigger: commitment_late, kind: commitment_watch, owner_side: firm, evidence: [e1]}
+
+  - id: metadata-only-nothing
+    why: a client whose policy became metadata_only after the late commitment was stored produces nothing
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      commitments:
+        - {client: c, owner_side: firm, due_date: "2026-10-03", evidence: [e1]}
+      policy_changes:
+        - {client: c, policy: metadata_only}
+    expect: []

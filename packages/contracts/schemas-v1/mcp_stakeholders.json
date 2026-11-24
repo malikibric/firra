@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "client_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_decision_maker": {
+            "type": "boolean"
+          },
+          "is_champion": {
+            "type": "boolean"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "display_name",
+          "role_title",
+          "is_decision_maker",
+          "last_seen_at"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "generated_at",
+    "client_id",
+    "items"
+  ],
+  "additionalProperties": false,
+  "title": "McpStakeholders",
+  "$id": "https://firra.app/contracts/v1/mcp_stakeholders.json"
+}

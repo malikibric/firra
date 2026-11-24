@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/records/message.json",
+  "title": "Message",
+  "description": "Canonical email produced by every mail connector (Gmail, Outlook, uploads) before minimization. Content is untrusted data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["provider", "external_id", "occurred_at", "sender", "to", "cc", "bcc"],
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": ["gmail", "outlook", "email_upload"]
+    },
+    "external_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "thread_key": {
+      "type": ["string", "null"],
+      "maxLength": 512
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sender": {
+      "$ref": "#/$defs/Participant"
+    },
+    "to": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/Participant"
+      }
+    },
+    "cc": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/Participant"
+      }
+    },
+    "bcc": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/Participant"
+      }
+    },
+    "subject": {
+      "type": ["string", "null"],
+      "maxLength": 2000
+    },
+    "body_text": {
+      "type": ["string", "null"],
+      "description": "Plain-text body before cleaning; dropped for metadata_only clients."
+    },
+    "message_id_header": {
+      "type": ["string", "null"],
+      "maxLength": 1000
+    },
+    "in_reply_to": {
+      "type": ["string", "null"],
+      "maxLength": 1000
+    },
+    "deep_link": {
+      "type": ["string", "null"],
+      "maxLength": 2000
+    }
+  },
+  "$defs": {
+    "Participant": {
+      "title": "Participant",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["email"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 320
+        },
+        "name": {
+          "type": ["string", "null"],
+          "maxLength": 200
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/backup_create_response.json",
+  "title": "BackupCreateResponse",
+  "description": "POST /local/backup/create: the encrypted backup of the non-recoverable state and the recovery phrase that opens it. The phrase is shown once and never stored; the app saves the file the owner chooses (the engine never writes to a caller-chosen path).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["recovery_phrase", "filename", "backup_b64"],
+  "properties": {
+    "recovery_phrase": { "type": "string", "minLength": 8, "maxLength": 64 },
+    "filename": { "type": "string", "pattern": "^firra-backup-[0-9]{8}\\.firrabackup$" },
+    "backup_b64": { "type": "string", "minLength": 1, "maxLength": 33554432 }
+  }
+}

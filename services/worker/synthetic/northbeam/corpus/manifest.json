@@ -1,0 +1,10 @@
+{
+  "calls": 286,
+  "cost_usd": "1.187920",
+  "events": 346,
+  "generated_at": "2026-09-30T17:33:58+00:00",
+  "messages": 700,
+  "model": "gemini-3.8-flash",
+  "prompt_version": "synthdata.v1",
+  "spec_version": "northbeam.v3"
+}

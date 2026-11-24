@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/relay_link_created.json",
+  "title": "RelayLinkCreated",
+  "description": "POST /local/relay/links: a new connector link. `url` holds the secret and is shown once; only its hash is kept.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "scopes",
+    "url"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "scopes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": {
+        "enum": [
+          "intelligence",
+          "sources"
+        ]
+      }
+    },
+    "url": {
+      "type": "string",
+      "maxLength": 400
+    }
+  }
+}

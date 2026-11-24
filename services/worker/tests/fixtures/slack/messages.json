@@ -1,0 +1,44 @@
+[
+  {
+    "channel": "CMAPPED",
+    "text": "Please send the revised report by Friday morning.",
+    "days": 2,
+    "user": "UCLIENT"
+  },
+  {
+    "channel": "CMAPPED",
+    "text": "We will deliver the agreed report before next Monday.",
+    "days": 1,
+    "user": "UOWNER"
+  },
+  {
+    "channel": "CMAPPED",
+    "text": "We need more evidence before the renewal conversation.",
+    "days": 3,
+    "user": "UNOEMAIL"
+  },
+  {
+    "channel": "CUNMAPPED",
+    "text": "UNMAPPED_SYNTHETIC_PRIVATE_TEXT",
+    "days": 1,
+    "user": "UCLIENT"
+  },
+  {
+    "channel": "DCOLLEAGUE",
+    "text": "COLLEAGUE_SYNTHETIC_PRIVATE_TEXT",
+    "days": 1,
+    "user": "UCOLLEAGUE"
+  },
+  {
+    "channel": "DEXTERNAL",
+    "text": "Please share the client dashboard tomorrow morning.",
+    "days": 1,
+    "user": "UCLIENT"
+  },
+  {
+    "channel": "CINTERNAL",
+    "text": "We will review the client renewal together tomorrow.",
+    "days": 1,
+    "user": "UOWNER"
+  }
+]

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/records/calendar_event.json",
+  "title": "CalendarEventRecord",
+  "description": "Canonical calendar event from Google Calendar or Outlook, before minimization. Content is untrusted data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "provider",
+    "external_id",
+    "starts_at",
+    "ends_at",
+    "status",
+    "organizer",
+    "attendees"
+  ],
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": ["google_calendar", "outlook_calendar"]
+    },
+    "external_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ends_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["confirmed", "tentative", "cancelled"]
+    },
+    "rescheduled": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the provider reports a moved start time."
+    },
+    "organizer": {
+      "$ref": "#/$defs/Participant"
+    },
+    "attendees": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/Participant"
+      }
+    },
+    "title": {
+      "type": ["string", "null"],
+      "maxLength": 2000
+    },
+    "deep_link": {
+      "type": ["string", "null"],
+      "maxLength": 2000
+    }
+  },
+  "$defs": {
+    "Participant": {
+      "title": "Participant",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["email"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 320
+        },
+        "name": {
+          "type": ["string", "null"],
+          "maxLength": 200
+        }
+      }
+    }
+  }
+}

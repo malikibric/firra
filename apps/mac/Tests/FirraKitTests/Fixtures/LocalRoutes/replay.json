@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-10-05T09:37:20.532262Z",
+  "run_id": "6eb7f916-be1e-4aab-b7ef-c46b8e7a889a",
+  "client_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+  "version": 1,
+  "narrative": {
+    "status": "active",
+    "end_date": null,
+    "end_kind": null,
+    "detection_at": "2026-09-23",
+    "detection_state": "high",
+    "confirmed_at": "2026-09-30",
+    "lead_days": null,
+    "confirmed_lead_days": null,
+    "max_state": "high",
+    "weeks_elevated": 2,
+    "transitions": [],
+    "visible_at_detection": [
+      {
+        "type": "delivery_complaint",
+        "family": "delivery",
+        "severity": "high",
+        "occurred_at": "2026-09-23",
+        "primary": true,
+        "evidence_ids": [
+          "00000000-0000-0000-0000-000000000003"
+        ],
+        "basis": "evidence"
+      }
+    ],
+    "detection_timing": [],
+    "detection_play": "fix_first",
+    "caveats": [],
+    "last_as_of": "2026-09-30",
+    "last_state": "high",
+    "unconfirmed_at_end": false,
+    "events": []
+  },
+  "weeks": [],
+  "evidence_ids": [
+    "00000000-0000-0000-0000-000000000003"
+  ]
+}

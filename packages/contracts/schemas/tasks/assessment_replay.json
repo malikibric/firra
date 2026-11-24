@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/assessment_replay.json",
+  "title": "AssessmentReplayPayload",
+  "description": "Run one requested replay_run: weekly assessments without hindsight and the Churn Replay summary (no model calls).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["replay_run_id"],
+  "properties": {
+    "replay_run_id": { "type": "string", "format": "uuid" }
+  }
+}

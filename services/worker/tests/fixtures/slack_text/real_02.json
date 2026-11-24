@@ -1,0 +1,1 @@
+{"channels": {}, "expected": "I checked with @tom and @Priya — the invoice for March is paid. Receipt: March invoice (https://pay.example/r/42)", "input": "I checked with <@U2|tom> and <@U3> — the invoice for March is paid. Receipt: <https://pay.example/r/42|March invoice>", "users": {"U3": "Priya"}}

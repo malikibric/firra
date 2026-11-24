@@ -1,0 +1,16 @@
+pnpm-lock.yaml
+uv.lock
+**/generated/**
+supabase/.temp/
+services/worker/
+packages/contracts/python/
+infra/
+.next/
+dist/
+coverage/
+
+# Hand-written docs keep their own formatting.
+**/*.md
+.venv*
+apps/mac/
+packages/contracts/schemas-v1

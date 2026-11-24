@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/metrics_export.json",
+  "title": "MetricsExport",
+  "description": "POST /local/metrics/export: content-free learning metrics for the owner to send by hand (plan L8-05). Aggregates only: no client names or ids, no card ids, no text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "generated_at",
+    "engine_version",
+    "as_of",
+    "usefulness",
+    "precision",
+    "lead_time",
+    "important_per_week"
+  ],
+  "properties": {
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "engine_version": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date"
+    },
+    "usefulness": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "precision": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "lead_time": {
+      "type": "object"
+    },
+    "important_per_week": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "week",
+          "count"
+        ],
+        "properties": {
+          "week": {
+            "type": "string",
+            "format": "date"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

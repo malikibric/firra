@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/process_records.json",
+  "title": "ProcessRecordsPayload",
+  "description": "Payload of process.records: clean, extract and verify the workspace's pending records in batches until none are left.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trigger"],
+  "properties": {
+    "trigger": {
+      "type": "string",
+      "enum": ["ingest", "sweep"],
+      "description": "What requested the run (for logs and progress only)."
+    }
+  }
+}

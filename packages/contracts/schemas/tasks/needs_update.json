@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/needs_update.json",
+  "title": "NeedsUpdatePayload",
+  "description": "Embed and cluster verified requests for one workspace after memory rebuild or manually.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trigger", "as_of"],
+  "properties": {
+    "trigger": { "type": "string", "enum": ["memory", "manual"] },
+    "as_of": { "type": ["string", "null"], "format": "date" }
+  }
+}

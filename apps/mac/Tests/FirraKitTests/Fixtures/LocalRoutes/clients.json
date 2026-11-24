@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-10-05T09:37:20.458957Z",
+  "items": [
+    {
+      "id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "name": "Synthetic Acme",
+      "status": "active",
+      "policy": "full",
+      "mrr": null,
+      "currency": null,
+      "renewal_date": null,
+      "notice_period_days": null,
+      "assessment": {
+        "risk_state": "high",
+        "state_since": "2026-10-05",
+        "expansion_state": "none",
+        "play": "monitor",
+        "as_of": "2026-10-05"
+      }
+    }
+  ]
+}

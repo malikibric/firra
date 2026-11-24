@@ -1,0 +1,32 @@
+[project]
+name = "firra-worker"
+version = "0.0.0"
+description = "Firra data plane: task endpoints, connectors, processing jobs."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "firra-contracts",
+  "fastapi>=0.118",
+  "uvicorn[standard]>=0.53.0",
+  "pydantic>=2.12",
+  "pydantic-settings>=2.11",
+  "psycopg[binary,pool]>=3.3.6",
+  "httpx>=0.28",
+  "sentry-sdk[fastapi]>=2.69.2",
+  "PyJWT[crypto]>=2.10",
+  "cryptography>=45",
+  "mcp>=1.2",
+]
+
+[tool.uv.sources]
+firra-contracts = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.17,<1"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "firra"
+module-root = ""
+
+[project.scripts]
+firra-mcp = "firra.local.mcp.stdio:main"

@@ -1,0 +1,49 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Matches pnpm minimumReleaseAge: let new releases age a week before adopting them.
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor:
+        update-types: [minor, patch]
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    # Matches pnpm minimumReleaseAge: let new releases age a week before adopting them.
+    cooldown:
+      default-days: 7
+    groups:
+      python-minor:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Matches pnpm minimumReleaseAge: let new releases age a week before adopting them.
+    cooldown:
+      default-days: 7
+  - package-ecosystem: terraform
+    directories: [/infra/terraform/envs/staging, /infra/terraform/envs/prod]
+    schedule:
+      interval: weekly
+    # Matches pnpm minimumReleaseAge: let new releases age a week before adopting them.
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker
+    directories: [/apps/api, /services/worker]
+    # Runtime majors are deliberate choices (Node LTS, Python 3.12 per CLAUDE.md), not bot updates.
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+      - dependency-name: python
+        update-types: [version-update:semver-major, version-update:semver-minor]
+    schedule:
+      interval: weekly
+    # Matches pnpm minimumReleaseAge: let new releases age a week before adopting them.
+    cooldown:
+      default-days: 7

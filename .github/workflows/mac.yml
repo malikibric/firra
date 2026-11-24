@@ -1,0 +1,36 @@
+name: Mac app
+
+# macOS minutes count ten times (a 2-minute run bills 20), so this runs only when started by hand
+# (Actions -> Mac app -> Run workflow), e.g. before a release DMG. Day to day, run
+# `apps/mac/scripts/test.sh` on the Mac: same tests, no minutes.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/mac
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Swift version
+        run: swift --version
+      - name: Build
+        run: swift build
+      - name: Test
+        run: ./scripts/test.sh
+      - name: Package (ad-hoc signed, placeholder configuration)
+        env:
+          FIRRA_API_URL: https://api.example.invalid
+          FIRRA_SUPABASE_URL: https://project.example.invalid
+          FIRRA_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+        run: ./scripts/package.sh 0.0.0-ci

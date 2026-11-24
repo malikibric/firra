@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-10-05T09:37:20.446367Z",
+  "since": "2026-09-28",
+  "items": [
+    {
+      "client_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "client_name": "Synthetic Acme",
+      "as_of": "2026-10-05",
+      "kind": "risk_state_changed",
+      "from_": "watch",
+      "to": "high",
+      "signal_type": null,
+      "family": null,
+      "severity": null,
+      "evidence_count": 0
+    }
+  ]
+}

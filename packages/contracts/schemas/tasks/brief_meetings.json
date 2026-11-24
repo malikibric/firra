@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/brief_meetings.json",
+  "title": "BriefMeetingsPayload",
+  "description": "Build deterministic briefs for upcoming client meetings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trigger"],
+  "properties": { "trigger": { "type": "string", "enum": ["sweep", "manual"] } }
+}

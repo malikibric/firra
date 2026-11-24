@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-10-05T09:37:20.500357Z",
+  "items": [
+    {
+      "kind": "morning_scan",
+      "enabled": false,
+      "created": true,
+      "last_run": null
+    },
+    {
+      "kind": "commitment_watch",
+      "enabled": true,
+      "created": false,
+      "last_run": null
+    },
+    {
+      "kind": "pre_meeting_brief",
+      "enabled": true,
+      "created": false,
+      "last_run": null
+    }
+  ]
+}

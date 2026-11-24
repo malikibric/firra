@@ -1,0 +1,20 @@
+# Plays (the design notes): checked in order, the first match wins. A condition list
+# is AND; `top_driver_families` and `unresolved_complaint_within_days` together mean "either".
+version: plays.v1
+
+plays:
+  - play: fix_first
+    min_risk: elevated
+    top_driver_families: [delivery, sentiment]
+    unresolved_complaint_within_days: 30
+  - play: stakeholder_remap
+    min_risk: elevated
+    top_driver_families: [stakeholder]
+  - play: renewal_prep
+    renewal_within_days: 45
+  - play: founder_review_call
+    min_risk: elevated
+  - play: expansion_conversation
+    expansion: strong
+    max_risk: watch
+  - play: monitor

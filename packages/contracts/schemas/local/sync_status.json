@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/sync_status.json",
+  "title": "SyncStatusResult",
+  "description": "MCP get_sync_status: per connection (optionally only those carrying one client) the provider, state, last sync, an action when something is wrong, and records waiting for the AI.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["connections", "waiting_for_ai"],
+  "properties": {
+    "waiting_for_ai": { "type": "integer", "minimum": 0 },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "status", "last_synced_at", "action"],
+        "properties": {
+          "provider": { "enum": ["gmail", "google_calendar", "slack", "email_upload"] },
+          "status": { "enum": ["active", "error", "revoked"] },
+          "last_synced_at": { "type": ["string", "null"], "format": "date-time" },
+          "action": { "type": ["string", "null"], "enum": [null, "reconnect_google", "reconnect_slack", "wait"] }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/engine_status.json",
+  "title": "EngineStatus",
+  "description": "GET /local/status: what the app shows in the menu bar and in Settings (docs/plans/local/contracts.md section 3). Counts and states only, never content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["engine_version", "database", "connections", "ai", "relay", "disk"],
+  "properties": {
+    "engine_version": { "type": "string", "maxLength": 40 },
+    "database": { "enum": ["starting", "migrating", "ready", "error"] },
+    "filevault": {
+      "enum": ["on", "off", "unknown"],
+      "description": "Reported by the app over the control socket; the engine only relays it."
+    },
+    "connections": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "provider", "account_label", "state"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "provider": { "enum": ["gmail", "google_calendar", "slack", "email_upload"] },
+          "account_label": { "type": "string", "maxLength": 200 },
+          "state": { "enum": ["syncing", "idle", "needs_reauth", "error", "paused"] },
+          "last_synced_at": { "type": ["string", "null"], "format": "date-time" },
+          "backfill_months": { "type": "integer", "minimum": 0, "maximum": 12 },
+          "error_class": { "type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{1,62}$" }
+        }
+      }
+    },
+    "ai": { "$ref": "#/$defs/AiStatus" },
+    "relay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": { "enum": ["not_registered", "offline", "connecting", "online"] },
+        "device_id": { "type": ["string", "null"], "format": "uuid" },
+        "last_connected_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "disk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_bytes"],
+      "properties": { "data_bytes": { "type": "integer", "minimum": 0 } }
+    },
+    "last_backup_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "$defs": {
+    "AiStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["executor", "tools", "queue", "state"],
+      "properties": {
+        "executor": { "enum": ["claude_code", "codex", "conversation_only"] },
+        "tools": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tool", "installed", "signed_in"],
+            "properties": {
+              "tool": { "enum": ["claude_code", "codex"] },
+              "installed": { "type": "boolean" },
+              "version": { "type": ["string", "null"], "maxLength": 40 },
+              "signed_in": { "type": ["boolean", "null"] }
+            }
+          }
+        },
+        "queue": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pending", "done", "rejected_items"],
+          "properties": {
+            "pending": { "type": "integer", "minimum": 0 },
+            "done": { "type": "integer", "minimum": 0 },
+            "rejected_items": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "state": {
+          "enum": [
+            "idle",
+            "working",
+            "waiting_for_limit",
+            "needs_signin",
+            "tool_missing",
+            "error",
+            "conversation_only"
+          ]
+        },
+        "resume_at": { "type": ["string", "null"], "format": "date-time" },
+        "error_class": { "type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{1,62}$" }
+      }
+    }
+  }
+}

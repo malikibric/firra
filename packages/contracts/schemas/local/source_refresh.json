@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/source_refresh.json",
+  "title": "SourceRefreshResult",
+  "description": "MCP refresh_client_sources: asks the normal sync to run now for the connections that carry one client (throttled to once per connection per 2 minutes). Counts only, never content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["state", "connections", "new_records", "synced_until"],
+  "properties": {
+    "state": { "enum": ["done", "running", "throttled", "needs_reconnect", "no_connection"] },
+    "connections": { "type": "integer", "minimum": 0 },
+    "new_records": { "type": "integer", "minimum": 0 },
+    "synced_until": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

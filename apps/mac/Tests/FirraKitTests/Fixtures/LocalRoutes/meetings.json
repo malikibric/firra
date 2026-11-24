@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-10-05T09:37:20.454602Z",
+  "items": [
+    {
+      "id": "9edde2cc-2ca1-4e9c-afe1-085e6ed608ce",
+      "calendar_event_id": "028185db-67e8-4317-98e7-25fd11667510",
+      "client_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+      "client_name": "Synthetic Acme",
+      "policy": "full",
+      "starts_at": "2026-10-06T09:37:20.348000Z",
+      "basis": "metadata",
+      "since_last_meeting": {
+        "records": 3,
+        "last_held_at": null
+      },
+      "open_commitments": [],
+      "unresolved_complaints": [],
+      "stakeholder_changes": [],
+      "renewal": null,
+      "unknowns": [],
+      "questions": []
+    }
+  ]
+}

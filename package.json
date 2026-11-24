@@ -1,0 +1,25 @@
+{
+  "name": "firra",
+  "private": true,
+  "packageManager": "pnpm@10.29.3",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "codegen": "turbo run codegen",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@firra/config": "workspace:*",
+    "prettier": "^3.9.9",
+    "supabase": "^2.118.0",
+    "turbo": "^2.11.4",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,0 +1,20 @@
+packages:
+  - apps/*
+  - packages/*
+  - services/*
+
+# pnpm 10 blocks dependency install scripts by default; allow only the ones we need.
+onlyBuiltDependencies:
+  - supabase
+  - esbuild
+  - sharp
+  - "@sentry/cli"
+
+ignoredBuiltDependencies:
+  - protobufjs
+
+# Supply-chain hardening: wait a week before adopting new releases, only install transitive
+# dependencies from the registry, and refuse packages whose trust level was downgraded.
+minimumReleaseAge: 10080
+blockExoticSubdeps: true
+trustPolicy: no-downgrade

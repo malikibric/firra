@@ -1,0 +1,381 @@
+# Morning-scan scenario oracle (T44b): executable form of the rules in
+# the original task spec. Written from that brief alone, not from Codex's source; the
+# implementer must not edit expectations. A disagreement is raised with the lead — either the brief
+# or the code is wrong.
+#
+# Format
+#   Each scenario seeds a fresh local workspace and states the exact Candidates expected from
+#   `MorningScan.candidates(repo, workspace_id, as_of)`.
+#   as_of:            the scan day (date). `since` comes from previous_runs, else as_of - 1 day.
+#   previous_runs:    optional morning_scan routine_run rows {status: succeeded|failed, scheduled_for}.
+#   seed.clients:     {key, status (default active), policy (default full), renewal_date,
+#                     notice_period_days}. Omitted -> one client {key: c, full, active}.
+#   seed.assessments: {client, as_of, risk_state, previous_risk_state (default null),
+#                     state_since (default as_of), expansion_state (default none),
+#                     run_kind (default live), evidence (labels; assessment_evidence links),
+#                     replay (bool: requires seed.replay)}.
+#   seed.signals:     {client, type, basis (default evidence), severity, inputs (metadata),
+#                     evidence (labels; signal_evidence links),
+#                     events: [{change, as_of (ISO datetime), severity}] in order}.
+#   seed.replay:      true -> create a replay_run for replay assessments.
+#   expect:           list of {client, trigger, kind, risk_to|expansion_to|severity, evidence}.
+#                     A field omitted from an entry is not checked (use sparingly, see Report).
+#   `evidence` labels are compared as a set; a full client's candidates carry the links, a
+#   metadata_only client's carry none. The runner also asserts no candidate comes from another
+#   workspace.
+
+scenarios:
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 1: risk rises, falls, no change, null previous state, and the since boundary.
+  # ----------------------------------------------------------------------------------------------
+  - id: risk-stable-to-watch
+    why: a stable -> watch rise is a risk_up candidate to watch
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-05", risk_state: watch, previous_risk_state: stable}
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: watch, evidence: []}
+
+  - id: risk-watch-to-elevated
+    why: a watch -> elevated rise is a risk_up candidate to elevated
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-05", risk_state: elevated, previous_risk_state: watch}
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: elevated, evidence: []}
+
+  - id: risk-elevated-to-high
+    why: an elevated -> high rise is a risk_up candidate to high
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-05", risk_state: high, previous_risk_state: elevated}
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: high, evidence: []}
+
+  - id: risk-high-to-watch
+    why: a high -> watch fall is a risk_down candidate carrying the new state as risk_to
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-05", risk_state: watch, previous_risk_state: high}
+    expect:
+      - {client: c, trigger: risk_down, kind: state_change, risk_to: watch, evidence: []}
+
+  - id: risk-no-change
+    why: a row whose previous state equals the new state is not a candidate
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-05", risk_state: watch, previous_risk_state: watch}
+    expect: []
+
+  - id: risk-null-previous
+    why: a first assessment with a null previous state is not a candidate
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-05", risk_state: high, previous_risk_state: null}
+    expect: []
+
+  - id: risk-since-day-excluded-asof-included
+    why: a change on the since day itself is excluded, a change on as_of is included
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-04", risk_state: watch, previous_risk_state: stable}
+        - {client: c, as_of: "2026-10-05", risk_state: elevated, previous_risk_state: watch}
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: elevated, evidence: []}
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 2: expansion rises only, compared with the latest row on or before since.
+  # ----------------------------------------------------------------------------------------------
+  - id: expansion-none-to-hypothesis
+    why: none -> hypothesis is an expansion_up candidate
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-04", risk_state: stable, expansion_state: none}
+        - {client: c, as_of: "2026-10-05", risk_state: stable, expansion_state: hypothesis}
+    expect:
+      - {client: c, trigger: expansion_up, kind: expansion, expansion_to: hypothesis, evidence: []}
+
+  - id: expansion-hypothesis-to-strong
+    why: hypothesis -> strong is an expansion_up candidate to strong
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-04", risk_state: stable, expansion_state: hypothesis}
+        - {client: c, as_of: "2026-10-05", risk_state: stable, expansion_state: strong}
+    expect:
+      - {client: c, trigger: expansion_up, kind: expansion, expansion_to: strong, evidence: []}
+
+  - id: expansion-strong-to-none
+    why: a fall from strong to none is not a candidate
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-04", risk_state: stable, expansion_state: strong}
+        - {client: c, as_of: "2026-10-05", risk_state: stable, expansion_state: none}
+    expect: []
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 3: signals — opened, reopened, escalated, lowered, resolved, metadata.
+  # ----------------------------------------------------------------------------------------------
+  - id: signal-opened
+    why: an opened signal is a signal_opened candidate with the event severity and its links
+    as_of: "2026-10-05"
+    seed:
+      signals:
+        - client: c
+          type: tone_decline
+          basis: evidence
+          severity: high
+          evidence: [e1]
+          events: [{change: opened, as_of: "2026-10-05T00:00:00+00:00", severity: high}]
+    expect:
+      - {client: c, trigger: signal_opened, kind: state_change, severity: high, evidence: [e1]}
+
+  - id: signal-reopened
+    why: a reopened signal is a signal_opened candidate
+    as_of: "2026-10-05"
+    seed:
+      signals:
+        - client: c
+          type: tone_decline
+          basis: evidence
+          severity: high
+          evidence: [e1]
+          events:
+            - {change: resolved, as_of: "2026-10-04T00:00:00+00:00", severity: medium}
+            - {change: reopened, as_of: "2026-10-05T00:00:00+00:00", severity: high}
+    expect:
+      - {client: c, trigger: signal_opened, kind: state_change, severity: high, evidence: [e1]}
+
+  - id: signal-severity-up
+    why: a severity rise is a signal_opened candidate with the new severity
+    as_of: "2026-10-05"
+    seed:
+      signals:
+        - client: c
+          type: tone_decline
+          basis: evidence
+          severity: high
+          evidence: [e1]
+          events:
+            - {change: opened, as_of: "2026-10-04T00:00:00+00:00", severity: medium}
+            - {change: severity_changed, as_of: "2026-10-05T00:00:00+00:00", severity: high}
+    expect:
+      - {client: c, trigger: signal_opened, kind: state_change, severity: high, evidence: [e1]}
+
+  - id: signal-severity-down
+    why: a severity fall is not a candidate
+    as_of: "2026-10-05"
+    seed:
+      signals:
+        - client: c
+          type: tone_decline
+          basis: evidence
+          severity: low
+          evidence: [e1]
+          events:
+            - {change: opened, as_of: "2026-10-04T00:00:00+00:00", severity: high}
+            - {change: severity_changed, as_of: "2026-10-05T00:00:00+00:00", severity: low}
+    expect: []
+
+  - id: signal-resolved
+    why: a resolved signal is a signal_resolved candidate and carries no evidence, so the seeded links are dropped
+    as_of: "2026-10-05"
+    seed:
+      signals:
+        - client: c
+          type: tone_decline
+          basis: evidence
+          severity: high
+          evidence: [e1]
+          events:
+            - {change: opened, as_of: "2026-10-04T00:00:00+00:00", severity: high}
+            - {change: resolved, as_of: "2026-10-05T00:00:00+00:00", severity: high}
+    expect:
+      - {client: c, trigger: signal_resolved, kind: state_change, evidence: []}
+
+  - id: signal-metadata-no-evidence
+    why: a metadata signal's candidate carries no evidence ids
+    as_of: "2026-10-05"
+    seed:
+      clients: [{key: meta, policy: metadata_only}]
+      signals:
+        - client: meta
+          type: reduced_engagement
+          basis: metadata
+          severity: medium
+          inputs: {ratio: 0.7}
+          events: [{change: opened, as_of: "2026-10-05T00:00:00+00:00", severity: medium}]
+    expect:
+      - {client: meta, trigger: signal_opened, kind: state_change, severity: medium, evidence: []}
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 4: notice deadline — one crossing per threshold, never a passed/no deadline.
+  # ----------------------------------------------------------------------------------------------
+  - id: notice-near-crossing
+    why: the near (30 day) threshold fires on the day it is crossed
+    as_of: "2026-10-02"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      clients: [{key: c, renewal_date: "2026-12-01", notice_period_days: 30}]
+    expect:
+      - {client: c, trigger: notice_close, kind: state_change, evidence: []}
+
+  - id: notice-near-next-day-none
+    why: the day after the near crossing does not fire again
+    as_of: "2026-10-03"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-02"}]
+    seed:
+      clients: [{key: c, renewal_date: "2026-12-01", notice_period_days: 30}]
+    expect: []
+
+  - id: notice-close-crossing
+    why: the close (14 day) threshold fires on the day it is crossed
+    as_of: "2026-10-18"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-17"}]
+    seed:
+      clients: [{key: c, renewal_date: "2026-12-01", notice_period_days: 30}]
+    expect:
+      - {client: c, trigger: notice_close, kind: state_change, evidence: []}
+
+  - id: notice-already-passed
+    why: a deadline already in the past (days_now < 0) fires nothing
+    as_of: "2026-10-05"
+    seed:
+      clients: [{key: c, renewal_date: "2026-10-01", notice_period_days: 30}]
+    expect: []
+
+  - id: notice-no-renewal-date
+    why: a client without a renewal_date fires nothing
+    as_of: "2026-10-05"
+    seed:
+      clients: [{key: c, renewal_date: null, notice_period_days: 30}]
+    expect: []
+
+  - id: notice-no-notice-period
+    why: a client without a notice_period_days fires nothing
+    as_of: "2026-10-05"
+    seed:
+      clients: [{key: c, renewal_date: "2026-12-01", notice_period_days: null}]
+    expect: []
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 5: since comes from the last succeeded run, else one day back, capped at seven.
+  # ----------------------------------------------------------------------------------------------
+  - id: since-none-means-one-day-back
+    why: with no run yet, a change on as_of - 1 (the since day) is excluded and one on as_of is included
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-04", risk_state: watch, previous_risk_state: stable}
+        - {client: c, as_of: "2026-10-05", risk_state: elevated, previous_risk_state: watch}
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: elevated, evidence: []}
+
+  - id: since-last-succeeded-run
+    why: since is the scheduled_for of the last succeeded run, so changes after it are included
+    as_of: "2026-10-05"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-02"}]
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-02", risk_state: watch, previous_risk_state: stable}
+        - {client: c, as_of: "2026-10-03", risk_state: elevated, previous_risk_state: watch}
+        - {client: c, as_of: "2026-10-04", risk_state: high, previous_risk_state: elevated}
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: elevated}
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: high}
+
+  - id: since-failed-run-ignored
+    why: a later failed run does not move since, so a change after the succeeded run is included
+    as_of: "2026-10-05"
+    previous_runs:
+      - {status: succeeded, scheduled_for: "2026-10-01"}
+      - {status: failed, scheduled_for: "2026-10-04"}
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-02", risk_state: watch, previous_risk_state: stable}
+        - {client: c, as_of: "2026-10-05", risk_state: elevated, previous_risk_state: watch}
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: watch}
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: elevated}
+
+  - id: since-capped-at-seven-days
+    why: a succeeded run 11 days back is capped at 7, so an earlier change is excluded
+    as_of: "2026-10-12"
+    previous_runs: [{status: succeeded, scheduled_for: "2026-10-01"}]
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-03", risk_state: watch, previous_risk_state: stable}
+        - {client: c, as_of: "2026-10-06", risk_state: elevated, previous_risk_state: watch}
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: elevated}
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 6: who is excluded.
+  # ----------------------------------------------------------------------------------------------
+  - id: excluded-churned-prospect-nothing
+    why: excluded, churned and prospect clients never produce a candidate; the active full one does
+    as_of: "2026-10-05"
+    seed:
+      clients:
+        - {key: ok, policy: full, status: active}
+        - {key: ex, policy: excluded, status: active}
+        - {key: ch, policy: full, status: churned}
+        - {key: pr, policy: full, status: prospect}
+      assessments:
+        - {client: ok, as_of: "2026-10-05", risk_state: watch, previous_risk_state: stable}
+        - {client: ex, as_of: "2026-10-05", risk_state: high, previous_risk_state: stable}
+        - {client: ch, as_of: "2026-10-05", risk_state: high, previous_risk_state: stable}
+        - {client: pr, as_of: "2026-10-05", risk_state: high, previous_risk_state: stable}
+    expect:
+      - {client: ok, trigger: risk_up, kind: state_change, risk_to: watch, evidence: []}
+
+  - id: replay-kind-ignored
+    why: a replay-kind assessment is not a live change and produces nothing
+    as_of: "2026-10-05"
+    seed:
+      replay: true
+      assessments:
+        - {client: c, as_of: "2026-10-05", risk_state: stable, previous_risk_state: stable}
+        - {client: c, as_of: "2026-10-05", risk_state: high, previous_risk_state: stable, run_kind: replay, replay: true}
+    expect: []
+
+  - id: metadata-only-evidence-empty
+    why: a metadata_only client still produces a candidate but with no evidence ids
+    as_of: "2026-10-05"
+    seed:
+      clients: [{key: meta, policy: metadata_only}]
+      assessments:
+        - {client: meta, as_of: "2026-10-05", risk_state: watch, previous_risk_state: stable}
+    expect:
+      - {client: meta, trigger: risk_up, kind: state_change, risk_to: watch, evidence: []}
+
+  # ----------------------------------------------------------------------------------------------
+  # Requirement 7: several changes for one client are separate candidates.
+  # ----------------------------------------------------------------------------------------------
+  - id: multiple-changes-separate-candidates
+    why: a risk rise, an expansion rise and an opened signal in one run are three candidates
+    as_of: "2026-10-05"
+    seed:
+      assessments:
+        - {client: c, as_of: "2026-10-04", risk_state: stable, expansion_state: none}
+        - {client: c, as_of: "2026-10-05", risk_state: watch, previous_risk_state: stable, expansion_state: hypothesis}
+      signals:
+        - client: c
+          type: tone_decline
+          basis: evidence
+          severity: high
+          evidence: [e1]
+          events: [{change: opened, as_of: "2026-10-05T00:00:00+00:00", severity: high}]
+    expect:
+      - {client: c, trigger: risk_up, kind: state_change, risk_to: watch}
+      - {client: c, trigger: expansion_up, kind: expansion, expansion_to: hypothesis}
+      - {client: c, trigger: signal_opened, kind: state_change, severity: high, evidence: [e1]}

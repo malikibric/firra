@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/diagnostics_ping.json",
+  "title": "DiagnosticsPingPayload",
+  "description": "Payload of the diagnostics.ping task: proves the api -> Cloud Tasks -> worker -> DB round-trip.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["requested_at"],
+  "properties": {
+    "requested_at": { "type": "string", "format": "date-time" }
+  }
+}

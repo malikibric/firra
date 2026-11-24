@@ -1,0 +1,153 @@
+name: Northbeam evals
+
+# Manual only: Local v1 runs evals on the Mac (docs/plans/local-v1.md); no weekly schedule.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Enter spend to authorize a capped synthetic Vertex eval"
+        required: true
+        type: string
+      budget_usd:
+        description: "Per-run USD budget (maximum 2)"
+        type: string
+        default: "1.75"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: evals
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm == 'spend') ||
+      (github.event_name == 'schedule' && vars.EVALS_SCHEDULE == 'on')
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 120
+    env:
+      FIRRA_ENV: local
+      FIRRA_TASK_AUTH_MODE: local_secret
+      FIRRA_LOCAL_WORKER_URL: http://127.0.0.1:8080
+      FIRRA_KMS_MODE: local
+      FIRRA_VERTEX_TOKEN_SOURCE: gcloud
+      FIRRA_VERTEX_LOCATION: eu
+      # Generation models are offered on the eu multi-region; the embedding model only on regions.
+      FIRRA_VERTEX_EMBED_LOCATION: europe-west3
+      FIRRA_GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      FIRRA_PROCESSING_ENABLED: "true"
+      # A task may only run this long before it continues, so a stuck provider call cannot outlast
+      # the local delivery timeout (570 s) and lose its 503 answer.
+      FIRRA_TASK_TIME_BUDGET_SECONDS: "60"
+      FIRRA_LOG_LEVEL: ERROR
+      FIRRA_MODEL_EXTRACT: gemini-3.5-flash-lite
+      FIRRA_MODEL_SYNTH: gemini-3.8-flash
+      FIRRA_MODEL_EMBED: gemini-embedding-001
+      FIRRA_EVAL_BUDGET_USD: ${{ github.event_name == 'workflow_dispatch' && (inputs.budget_usd || '1.75') || vars.EVALS_BUDGET_USD || '1.75' }}
+    steps:
+      - name: Validate run budget before any setup
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          from decimal import Decimal, InvalidOperation
+          try:
+              budget = Decimal(os.environ["FIRRA_EVAL_BUDGET_USD"])
+              valid = budget.is_finite() and 0 < budget <= 2
+          except InvalidOperation:
+              valid = False
+          if not valid:
+              print("::error::Eval budget must be positive and at most 2 USD")
+              raise SystemExit(2)
+          PYTHON
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --all-packages --frozen
+      - name: Require committed corpus before GCP authentication
+        run: |
+          if [ ! -f services/worker/synthetic/northbeam/corpus/messages.jsonl ]; then
+            echo "::error::Northbeam corpus is missing; generate and commit it with owner approval before running paid evals. No GCP step has run."
+            exit 2
+          fi
+      - name: Require a current extraction prompt and a consistent corpus before GCP authentication
+        run: |
+          uv run python - <<'PYTHON'
+          import json
+          import sys
+
+          from firra.extract.process import PROMPT_VERSION
+          from firra.synthetic.load import CORPUS_DIR, read_events, read_messages
+          from firra.synthetic.truth import TRUTH_PATH
+
+          counts = json.loads(TRUTH_PATH.read_text())["counts"]
+          found = {"messages": len(read_messages(CORPUS_DIR)), "meetings": len(read_events(CORPUS_DIR))}
+          print(f"prompt={PROMPT_VERSION} messages={found['messages']} meetings={found['meetings']}")
+          if int(PROMPT_VERSION.rsplit(".v", 1)[1]) < 2:
+              print("::error::This ref still uses the first extraction prompt (v1). No GCP step has run.")
+              sys.exit(2)
+          if found != {k: counts[k] for k in found}:
+              print("::error::Corpus files and truth.json disagree. No GCP step has run.")
+              sys.exit(2)
+          PYTHON
+      - name: Start Supabase
+        run: |
+          pnpm exec supabase start -x studio,vector,logflare,imgproxy
+          pnpm exec supabase status -o env \
+            | grep -E '^DB_URL=' | sed 's/^DB_URL=/FIRRA_DATABASE_URL=/' \
+            | tr -d '"' >> "$GITHUB_ENV"
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_EVALS_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: Start worker with the eval hard cap
+        run: |
+          export FIRRA_LOCAL_RAW_DIR="$RUNNER_TEMP/firra-eval-raw"
+          echo "FIRRA_LOCAL_RAW_DIR=$FIRRA_LOCAL_RAW_DIR" >> "$GITHUB_ENV"
+          task_secret=$(openssl rand -hex 32)
+          echo "::add-mask::$task_secret"
+          export FIRRA_LOCAL_TASK_SECRET="$task_secret"
+          export FIRRA_LOCAL_KEK_HEX=$(openssl rand -hex 32)
+          export FIRRA_LLM_HARD_CAP_USD="$FIRRA_EVAL_BUDGET_USD"
+          echo "FIRRA_LOCAL_TASK_SECRET=$task_secret" >> "$GITHUB_ENV"
+          uv run uvicorn --factory firra.app:create_app --host 127.0.0.1 --port 8080 \
+            --log-level error --no-access-log > worker.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8080/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Eval worker did not become healthy"
+          exit 3
+      - name: Run capped eval
+        run: uv run python -m firra.evals run --yes --out eval-out
+      - name: Evaluation summary
+        if: always()
+        run: |
+          if [ -f eval-out/eval.md ]; then
+            cat eval-out/eval.md >> "$GITHUB_STEP_SUMMARY"
+          elif [ -f eval-out/run.json ]; then
+            cat eval-out/run.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f worker.log ]; then
+            grep '"severity":"ERROR"' worker.log || true
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: northbeam-eval
+          path: eval-out
+          retention-days: 30
+          if-no-files-found: ignore

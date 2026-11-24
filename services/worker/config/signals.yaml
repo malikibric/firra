@@ -1,0 +1,230 @@
+# Signal rules (P2 D10). Windows, thresholds and severities per rule; the catalog in
+# the original task spec is the contract. `version` is stored as signal.rule_version, so
+# change it whenever a threshold changes.
+version: signals.v3
+
+# Consecutive client chat records at most this many minutes apart count as one touch.
+chat_burst_minutes: 30
+# Spec section 5: the owner is not on every thread (volume rules are suppressed, caveat shown).
+partial_view:
+  window_days: 120
+  min_other_firm_people: 2
+  max_owner_share: 0.5
+
+rules:
+  tone_decline:
+    enabled: true
+    family: sentiment
+    window_days: 30
+    baseline_days: 120        # baseline covers days 31..120
+    min_messages: 5
+    min_share: 0.30
+    min_increase: 0.20
+    high_share: 0.50
+    max_evidence: 5
+  reduced_engagement:
+    enabled: true
+    family: engagement
+    window_days: 30
+    baseline_days: 120
+    min_baseline_per_window: 4
+    max_ratio: 0.5
+    watch_ratio: 0.7
+
+  delivery_complaint:
+    enabled: true
+    family: delivery
+    window_days: 30
+    subtypes: [delay, quality, communication]
+    high_count: 2
+    max_evidence: 5
+    severity: medium
+    high_severity: high
+  repeated_complaint:
+    enabled: true
+    family: delivery
+    window_days: 60
+    min_records: 2
+    max_evidence: 5
+    severity: high
+    dedupe_key: repeated
+  executive_escalation:
+    enabled: true
+    family: stakeholder
+    window_days: 30
+    new_person_days: 30
+    max_evidence: 5
+    severity: high
+    dedupe_key: escalation
+  champion_departure:
+    enabled: true
+    family: stakeholder
+    window_days: 90
+    severity: high
+  champion_latency_drift:
+    enabled: true
+    family: stakeholder
+    window_days: 60
+    baseline_days: 240
+    min_recent_replies: 2
+    min_baseline_replies: 3
+    min_recent_median_h: 24
+    min_ratio: 2
+    severity: medium
+    chat:
+      min_recent_replies: 4
+      min_baseline_replies: 8
+      min_recent_median_wh: 3
+      min_ratio: 2
+  new_senior_stakeholder:
+    enabled: true
+    family: stakeholder
+    window_days: 60
+    min_client_age_days: 90
+    min_history_days: 60
+    severity: medium
+  meeting_cancellations:
+    enabled: true
+    family: meetings
+    window_days: 60
+    min_affected: 2
+    min_share: 0.40
+    affected_statuses: [cancelled, rescheduled]
+    severity: medium
+    dedupe_key: meetings
+  late_commitment:
+    enabled: true
+    family: delivery
+    window_days: 45
+    high_overdue_days: 14
+    severity: medium
+    high_severity: high
+  goal_result_mismatch:
+    enabled: true
+    family: delivery
+    pairing_days: 180
+    max_result_ratio: 0.5
+    lower_is_better_terms: [under, below, less, lower, max, reduce]
+    severity: medium
+  first_90_days_no_result:
+    enabled: true
+    family: delivery
+    min_days: 90
+    max_days: 150
+    severity: medium
+    dedupe_key: onboarding
+  in_house_risk:
+    enabled: true
+    family: commercial
+    window_days: 90
+    max_evidence: 5
+    severity: medium
+    dedupe_key: in_house
+  renewal_window:
+    enabled: true
+    family: timing
+    renewal_window_days: 90
+    notice_window_days: 30
+    high_notice_days: 14
+    severity: medium
+    high_severity: high
+
+  # P2b (the design notes); implemented in T20b.
+  client_initiation_drop:
+    enabled: true
+    family: engagement
+    window_days: 30
+    baseline_days: 120
+    min_baseline_per_window: 2
+    max_ratio: 0.5
+    watch_ratio: 0.7
+    severity: medium
+    watch_severity: low
+    dedupe_key: initiation
+  client_reply_latency_drift:
+    enabled: true
+    family: engagement
+    window_days: 60
+    baseline_days: 240
+    min_recent_replies: 3
+    min_baseline_replies: 5
+    min_recent_median_h: 24
+    min_ratio: 2
+    watch_median_h: 12
+    watch_ratio: 1.5
+    severity: medium
+    watch_severity: low
+    dedupe_key: latency
+    chat:
+      min_recent_replies: 5
+      min_baseline_replies: 10
+      min_recent_median_wh: 3
+      watch_median_wh: 1.5
+      min_ratio: 2
+      watch_ratio: 1.5
+  participant_narrowing:
+    enabled: true
+    family: stakeholder
+    window_days: 60
+    baseline_windows: 3
+    min_baseline_authors: 3
+    max_ratio: 0.5
+    watch_ratio: 0.7
+    severity: medium
+    watch_severity: low
+    dedupe_key: participants
+  decision_maker_silence:
+    enabled: true
+    family: stakeholder
+    window_days: 30
+    baseline_days: 180
+    min_baseline_messages: 3
+    severity: medium
+  meeting_attendance_drop:
+    enabled: true
+    family: meetings
+    window_days: 90
+    baseline_days: 270
+    min_recent_events: 2
+    min_baseline_events: 3
+    max_ratio: 0.7
+    severity: low
+    dedupe_key: attendance
+  scope_cut_talk:
+    enabled: true
+    family: commercial
+    window_days: 60
+    max_evidence: 5
+    severity: low
+    medium_records: 2
+    medium_severity: medium
+    dedupe_key: scope_cut
+  expansion_need:
+    enabled: true
+    family: expansion
+    window_days: 90
+    max_evidence: 5
+    severity: medium
+  client_initiative:
+    enabled: true
+    family: expansion
+    window_days: 90
+    max_evidence: 5
+    severity: medium
+    dedupe_key: initiative
+  budget_growth:
+    enabled: true
+    family: expansion
+    window_days: 90
+    max_evidence: 5
+    severity: medium
+    dedupe_key: budget_growth
+
+latent_demand:
+  version: needs.v1
+  similarity: 0.82
+  window_days: 60
+  min_mentions: 3
+  min_threads: 2
+  service_similarity: 0.80
+  embedding_dimensions: 768

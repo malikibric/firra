@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "items": {
+      "minItems": 3,
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "morning_scan",
+              "commitment_watch",
+              "pre_meeting_brief"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "created": {
+            "type": "boolean"
+          },
+          "last_run": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "scheduled_for": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "queued",
+                      "running",
+                      "succeeded",
+                      "failed"
+                    ]
+                  },
+                  "finished_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "counts": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "required": [
+                  "scheduled_for",
+                  "status",
+                  "finished_at",
+                  "counts"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "enabled",
+          "created",
+          "last_run"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "generated_at",
+    "items"
+  ],
+  "additionalProperties": false,
+  "title": "RoutinesResponse",
+  "$id": "https://firra.app/contracts/v1/routines_response.json"
+}

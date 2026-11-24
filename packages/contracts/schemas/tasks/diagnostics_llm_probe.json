@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/diagnostics_llm_probe.json",
+  "title": "DiagnosticsLlmProbePayload",
+  "description": "Payload of the diagnostics.llm_probe task: calls each configured Gemini model once on the EU Vertex endpoint with a fixed synthetic prompt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["requested_at"],
+  "properties": {
+    "requested_at": { "type": "string", "format": "date-time" }
+  }
+}

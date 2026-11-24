@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/sync_slack.json",
+  "title": "SyncSlackPayload",
+  "description": "Payload of sync.slack: poll the mapped channels of one Slack connection. Without a window it reads since each channel's stored cursor; with a window it backfills that window (one channel when channel_id is given).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["connection_id"],
+  "properties": {
+    "connection_id": { "type": "string", "format": "uuid" },
+    "channel_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "window_start": { "type": "string", "format": "date-time" },
+    "window_end": { "type": "string", "format": "date-time" }
+  }
+}

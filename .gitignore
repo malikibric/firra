@@ -1,0 +1,65 @@
+# deps
+node_modules/
+.pnpm-store/
+.venv*
+.venv.nosync/
+__pycache__/
+*.py[cod]
+
+# build
+.next/
+dist/
+out/
+build/
+.turbo/
+*.tsbuildinfo
+coverage/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# test output
+playwright-report/
+test-results/
+
+# local raw objects (dev)
+.local/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+service-account*.json
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl.bak
+
+# supabase
+supabase/.branches/
+supabase/.temp/
+
+# iCloud conflict copies ("file 2.ts") appear when the repo sits in a synced folder
+* [2-9].*
+* [2-9]
+
+# os/editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# prompt lab output (synthetic, local experiments)
+lab-out/
+.vitest/
+/settings.json

@@ -1,0 +1,6 @@
+version: facts.v1
+lead_minutes: 120
+max_questions: 3
+stakeholder_days: 30
+renewal_days: 90
+max_items_per_section: 5

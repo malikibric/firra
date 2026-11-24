@@ -1,0 +1,30 @@
+name: Deploy production
+
+# Tagged release (vX.Y.Z) on main; the "production" environment requires manual approval.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify-on-main:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Tag must point to a commit on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+  production:
+    needs: verify-on-main
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: production
+      ref: ${{ github.sha }}
+    # Deploy secrets are GitHub *environment* secrets; they resolve only inside the called job
+    # that declares the environment, so they cannot be passed explicitly from here.
+    secrets: inherit # nosemgrep: secrets-inherit

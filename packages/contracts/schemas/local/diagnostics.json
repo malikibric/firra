@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/diagnostics.json",
+  "title": "Diagnostics",
+  "description": "POST /local/diagnostics/export: versions, counts and error classes. Never names, addresses, quotes, message text, ids of clients or tokens (a test searches the export for fixture content).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["generated_at", "engine_version", "platform", "migrations", "clients", "records", "jobs", "connections", "data_bytes"],
+  "properties": {
+    "generated_at": { "type": "string", "format": "date-time" },
+    "engine_version": { "type": "string", "maxLength": 40 },
+    "platform": { "type": "string", "maxLength": 80 },
+    "migrations": { "type": "integer", "minimum": 0 },
+    "clients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "policy", "count"],
+        "properties": {
+          "status": { "enum": ["active", "churned", "prospect"] },
+          "policy": { "enum": ["full", "metadata_only", "excluded"] },
+          "count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "kind", "processing_state", "count"],
+        "properties": {
+          "provider": { "type": "string", "maxLength": 40 },
+          "kind": { "type": "string", "maxLength": 40 },
+          "processing_state": { "type": "string", "maxLength": 40 },
+          "count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "jobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "status", "error_class", "count"],
+        "properties": {
+          "type": { "type": "string", "maxLength": 80 },
+          "status": { "type": "string", "maxLength": 20 },
+          "error_class": { "type": ["string", "null"], "maxLength": 80 },
+          "count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "status", "last_error_class", "last_synced_at"],
+        "properties": {
+          "provider": { "type": "string", "maxLength": 40 },
+          "status": { "enum": ["active", "error", "revoked"] },
+          "last_error_class": { "type": ["string", "null"], "maxLength": 80 },
+          "last_synced_at": { "type": ["string", "null"], "format": "date-time" }
+        }
+      }
+    },
+    "data_bytes": { "type": "integer", "minimum": 0 }
+  }
+}

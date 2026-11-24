@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/sync_incremental.json",
+  "title": "SyncIncrementalPayload",
+  "description": "Payload of sync.incremental: fetch changes since the connection's cursor (push notification or sweep).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["connection_id"],
+  "properties": {
+    "connection_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "renew_push": {
+      "type": "boolean",
+      "default": false,
+      "description": "Renew the provider push subscription now (e.g. after a Graph lifecycle notification)."
+    }
+  }
+}

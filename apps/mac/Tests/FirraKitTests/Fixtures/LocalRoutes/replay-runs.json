@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-10-05T09:37:20.529046Z",
+  "items": [
+    {
+      "id": "6eb7f916-be1e-4aab-b7ef-c46b8e7a889a",
+      "window_start": "2026-09-01",
+      "window_end": "2026-09-30",
+      "step_days": 7,
+      "status": "succeeded",
+      "finished_at": "2026-10-05T09:37:20.298054Z",
+      "totals": {
+        "losses": 0,
+        "losses_detected_30d": 0,
+        "median_lead_days": null,
+        "retained": 1,
+        "retained_with_elevated": 1,
+        "false_alarm_client_weeks_per_10_clients_per_month": 2.0,
+        "flicker": 0
+      },
+      "narrated": true
+    }
+  ]
+}

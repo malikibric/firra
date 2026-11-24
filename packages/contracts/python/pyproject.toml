@@ -1,0 +1,14 @@
+[project]
+name = "firra-contracts"
+version = "0.0.0"
+description = "Generated Pydantic models for Firra task payloads and shared enums."
+requires-python = ">=3.12,<3.13"
+dependencies = ["pydantic>=2.12"]
+
+[build-system]
+requires = ["uv_build>=0.12.17,<1"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "firra_contracts"
+module-root = ""

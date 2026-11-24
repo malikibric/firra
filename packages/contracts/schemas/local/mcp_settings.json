@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/mcp_settings.json",
+  "title": "McpSettings",
+  "description": "GET/PUT /local/mcp/settings: source_access = whether the user's AI may read excerpts of client mail, Slack and meetings through the MCP source layer (off until the owner switches it on, decision T29); processing_tools = whether the in-conversation extraction tools get_pending_mail and submit_extractions are offered (off by default, they cost the AI about 15k tokens per packet; read when the MCP catalog is built, so it applies after the engine or the AI tool restarts). PUT takes one or both fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_access",
+    "processing_tools"
+  ],
+  "properties": {
+    "source_access": {
+      "type": "boolean"
+    },
+    "processing_tools": {
+      "type": "boolean"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/slack_import_response.json",
+  "title": "SlackImportResponse",
+  "description": "POST /local/slack/import: selected channels, newly inserted messages and messages discarded by mapping or normalization. Existing messages are upserted without increasing messages_imported.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["channels", "messages_imported", "messages_dropped"],
+  "properties": {
+    "channels": { "type": "integer", "minimum": 0 },
+    "messages_imported": { "type": "integer", "minimum": 0 },
+    "messages_dropped": { "type": "integer", "minimum": 0 }
+  }
+}

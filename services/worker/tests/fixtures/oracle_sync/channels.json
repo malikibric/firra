@@ -1,0 +1,7 @@
+[
+  {"id": "C-mapped", "name": "shared-acme", "kind": "public", "teams": ["T-OWN", "T-EXT"]},
+  {"id": "C-open", "name": "random", "kind": "public", "teams": ["T-OWN"]},
+  {"id": "C-internal", "name": "internal-acme", "kind": "private", "teams": ["T-OWN"]},
+  {"id": "D-colleague", "name": "colleague-dm", "kind": "im", "teams": ["T-OWN"]},
+  {"id": "D-client", "name": "client-dm", "kind": "im", "teams": ["T-OWN", "T-EXT"]}
+]

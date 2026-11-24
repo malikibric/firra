@@ -1,0 +1,414 @@
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected:
+  - 101
+  name: no later message remains unresolved
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: tone, payload: {tone: positive}}
+  expected: []
+  name: later positive tone
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: tone, payload: {tone: negative}}
+  expected:
+  - 101
+  name: later negative tone
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: tone, payload: {tone: neutral}}
+  expected:
+  - 101
+  name: later neutral tone
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected: []
+  name: later client praise resolves
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: b, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected:
+  - 101
+  name: praise on another thread
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected:
+  - 101
+  name: firm praise cannot resolve
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected:
+  - 101
+  name: inbound firm praise cannot resolve
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: out, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected:
+  - 101
+  name: outbound client praise cannot resolve
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -150, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected:
+  - 101
+  name: praise before the complaint
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -100, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected:
+  - 101
+  name: praise simultaneous with complaint
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: 1, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected:
+  - 101
+  name: praise after reference
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: 0, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected: []
+  name: praise exactly at reference resolves
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: result_reported, payload: {}}
+  expected:
+  - 101
+  name: unrelated extraction cannot resolve
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected: []
+  name: firm commitment done
+  commitments:
+  - {id: 201, status: done, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: firm commitment open
+  commitments:
+  - {id: 201, status: open, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: firm commitment late
+  commitments:
+  - {id: 201, status: late, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: firm commitment cancelled
+  commitments:
+  - {id: 201, status: cancelled, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -150, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: done commitment stated before complaint
+  commitments:
+  - {id: 201, side: firm, status: done, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -100, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: done commitment simultaneous with complaint
+  commitments:
+  - {id: 201, side: firm, status: done, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: 1, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: done commitment stated after reference
+  commitments:
+  - {id: 201, side: firm, status: done, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: b, seconds: -50, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: done commitment in another thread
+  commitments:
+  - {id: 201, side: firm, status: done, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: client commitment done does not resolve
+  commitments:
+  - {id: 201, side: client, status: done, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: commitment, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: nonmatching evidence does not resolve
+  commitments:
+  - {id: 201, side: firm, status: done, evidence: [502]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: request, payload: {}, evidence: [501]}
+  expected:
+  - 101
+  name: praise evidence cannot state a firm commitment
+  commitments:
+  - {id: 201, side: firm, status: done, evidence: [501]}
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -2592001}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected: []
+  name: older complaint
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -2592000}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected: []
+  name: exact window boundary
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -2591999}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected:
+  - 101
+  name: one second inside window
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: 1}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected: []
+  name: future complaint
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: 0}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected:
+  - 101
+  name: complaint exactly at reference
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100, direction: out, side: firm}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected: []
+  name: firm complaint is not a candidate
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: null, seconds: -100}
+  - {id: 2, thread: null, seconds: -50, direction: in, side: client}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  expected:
+  - 101
+  name: null thread never resolves
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: b, seconds: -50}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: complaint}
+  expected:
+  - 102
+  - 101
+  name: two unresolved complaints newest first
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  extractions:
+  - {id: 103, record: 1, kind: complaint}
+  - {id: 101, record: 1, kind: complaint}
+  expected:
+  - 101
+  - 103
+  name: same timestamp uses ascending string id
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  - {id: 2, thread: a, seconds: -50, direction: in, side: client}
+  - {id: 3, thread: a, seconds: -25}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  - {id: 102, record: 2, kind: praise, payload: {}}
+  - {id: 103, record: 3, kind: complaint}
+  expected:
+  - 103
+  name: positive resolves earlier complaint only
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 0
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected:
+  - 101
+  name: invalid window 0
+  error: ValueError
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: -1
+  records:
+  - {id: 1, thread: a, seconds: -100}
+  extractions:
+  - {id: 101, record: 1, kind: complaint}
+  expected:
+  - 101
+  name: invalid window -1
+  error: ValueError
+- ref: '2026-09-30T00:00:00+00:00'
+  within_days: 30
+  records: []
+  extractions: []
+  expected: []
+  name: empty facts

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/backup_restore_response.json",
+  "title": "BackupRestoreResponse",
+  "description": "What a restore brought back; mappings and feedback are applied after the first resync.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["clients", "pending_channel_mappings", "pending_feedback"],
+  "properties": {
+    "clients": { "type": "integer", "minimum": 0 },
+    "pending_channel_mappings": { "type": "integer", "minimum": 0 },
+    "pending_feedback": { "type": "integer", "minimum": 0 }
+  }
+}

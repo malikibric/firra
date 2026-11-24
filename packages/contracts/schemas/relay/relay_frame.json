@@ -1,0 +1,355 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/relay/relay_frame.json",
+  "title": "RelayFrame",
+  "description": "A JSON text frame on the device link (docs/plans/local/relay.md section 4). At most 1 MiB per frame.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Challenge"
+    },
+    {
+      "$ref": "#/$defs/Hello"
+    },
+    {
+      "$ref": "#/$defs/HelloOk"
+    },
+    {
+      "$ref": "#/$defs/Ping"
+    },
+    {
+      "$ref": "#/$defs/Pong"
+    },
+    {
+      "$ref": "#/$defs/GrantAdd"
+    },
+    {
+      "$ref": "#/$defs/GrantRemove"
+    },
+    {
+      "$ref": "#/$defs/Request"
+    },
+    {
+      "$ref": "#/$defs/Response"
+    },
+    {
+      "$ref": "#/$defs/Chunk"
+    },
+    {
+      "$ref": "#/$defs/Cancel"
+    },
+    {
+      "$ref": "#/$defs/Error"
+    }
+  ],
+  "$defs": {
+    "Challenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "nonce"
+      ],
+      "description": "Relay to device: random nonce (base64) to sign.",
+      "properties": {
+        "type": {
+          "const": "challenge"
+        },
+        "nonce": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
+        }
+      }
+    },
+    "Hello": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol",
+        "device_id",
+        "public_key",
+        "signature"
+      ],
+      "description": "Device to relay: Ed25519 public key (base64, 32 bytes), device_id = first 16 hex of sha256(public key), signature over the raw nonce bytes.",
+      "properties": {
+        "type": {
+          "const": "hello"
+        },
+        "protocol": {
+          "const": 1
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "public_key": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 44
+        },
+        "signature": {
+          "type": "string",
+          "minLength": 86,
+          "maxLength": 90
+        }
+      }
+    },
+    "HelloOk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "description": "Relay to device: the signature verified.",
+      "properties": {
+        "type": {
+          "const": "hello_ok"
+        }
+      }
+    },
+    "Ping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "description": "Either side: liveness.",
+      "properties": {
+        "type": {
+          "const": "ping"
+        }
+      }
+    },
+    "Pong": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "description": "Answer to ping.",
+      "properties": {
+        "type": {
+          "const": "pong"
+        }
+      }
+    },
+    "GrantAdd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "hash"
+      ],
+      "description": "Device to relay: a connector link exists; hash = sha256 hex of its secret. Relay keeps it in memory only.",
+      "properties": {
+        "type": {
+          "const": "grant_add"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "GrantRemove": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "description": "Device to relay: the link was revoked.",
+      "properties": {
+        "type": {
+          "const": "grant_remove"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "Request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "method",
+        "path",
+        "headers",
+        "body_b64",
+        "deadline_ms"
+      ],
+      "description": "Relay to device: one HTTP request to the MCP endpoint. Headers are limited to an allow-list; the secret travels in `authorization`.",
+      "properties": {
+        "type": {
+          "const": "request"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "DELETE"
+          ]
+        },
+        "path": {
+          "const": "/mcp"
+        },
+        "headers": {
+          "type": "object",
+          "maxProperties": 8,
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        },
+        "body_b64": {
+          "type": "string",
+          "maxLength": 1500000,
+          "pattern": "^[A-Za-z0-9+/_=-]*$"
+        },
+        "deadline_ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 120000
+        }
+      }
+    },
+    "Response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "status",
+        "headers",
+        "body_b64",
+        "final"
+      ],
+      "description": "Device to relay: the answer, or its first part when final is false (then chunk frames follow).",
+      "properties": {
+        "type": {
+          "const": "response"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "headers": {
+          "type": "object",
+          "maxProperties": 8,
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        },
+        "body_b64": {
+          "type": "string",
+          "maxLength": 1500000,
+          "pattern": "^[A-Za-z0-9+/_=-]*$"
+        },
+        "final": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Chunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "seq",
+        "body_b64",
+        "final"
+      ],
+      "description": "Device to relay: further body parts of a streamed answer.",
+      "properties": {
+        "type": {
+          "const": "chunk"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "body_b64": {
+          "type": "string",
+          "maxLength": 1500000,
+          "pattern": "^[A-Za-z0-9+/_=-]*$"
+        },
+        "final": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Cancel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "description": "Either side: abort a request.",
+      "properties": {
+        "type": {
+          "const": "cancel"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "code"
+      ],
+      "description": "Either side: protocol error; the socket closes after it.",
+      "properties": {
+        "type": {
+          "const": "error"
+        },
+        "code": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    }
+  }
+}

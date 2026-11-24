@@ -1,0 +1,605 @@
+# Multichannel signal oracle (L2S-10): cases for signals.v3 from the spec only.
+# Written from docs/plans/local/multichannel-signals.md §7 (O1–O15) plus derived
+# boundary cases, independently of the L2S-09 implementation. The implementer must
+# not edit expectations: a disagreement goes to the lead.
+#
+# Format extends oracle.yaml: ref is the same 2026-09-30T00:00:00Z; day/hour work
+# as there, plus minute (default 0) for chat gaps. Records take source (email|chat,
+# default email), channel (chat channel; thread key is "channel" or "channel/thread"),
+# connection (a label from connections, for coverage). from is a client person id,
+# "firm" (firm side, no author), "owner" (the owner author) or a firm person id
+# (people entry with firm: true). owner/owners declare the owner ids; timezone sets
+# ClientFacts.timezone. connections build CoverageFacts (id, status, synced_until day).
+# expect/caveats/inputs/pending work as in oracle.yaml; caveat compares caveat codes
+# from the coverage guard (assessment-level suppression lives there, not in drafts).
+# why quotes the spec section each case checks.
+
+# Shared baselines -----------------------------------------------------------
+# 24 mail touches, 8 per 30 days over days 31-120 (O1, O2, O9, O10, O11, O15).
+baseline_8_per_30: &baseline_8_per_30
+  - {id: b01, day: -31, thread: b, from: ana}
+  - {id: b02, day: -35, thread: b, from: ana}
+  - {id: b03, day: -38, thread: b, from: ana}
+  - {id: b04, day: -42, thread: b, from: ana}
+  - {id: b05, day: -45, thread: b, from: ana}
+  - {id: b06, day: -49, thread: b, from: ana}
+  - {id: b07, day: -52, thread: b, from: ana}
+  - {id: b08, day: -56, thread: b, from: ana}
+  - {id: b09, day: -60, thread: b, from: ana}
+  - {id: b10, day: -63, thread: b, from: ana}
+  - {id: b11, day: -67, thread: b, from: ana}
+  - {id: b12, day: -70, thread: b, from: ana}
+  - {id: b13, day: -74, thread: b, from: ana}
+  - {id: b14, day: -77, thread: b, from: ana}
+  - {id: b15, day: -81, thread: b, from: ana}
+  - {id: b16, day: -84, thread: b, from: ana}
+  - {id: b17, day: -88, thread: b, from: ana}
+  - {id: b18, day: -91, thread: b, from: ana}
+  - {id: b19, day: -95, thread: b, from: ana}
+  - {id: b20, day: -99, thread: b, from: ana}
+  - {id: b21, day: -103, thread: b, from: ana}
+  - {id: b22, day: -107, thread: b, from: ana}
+  - {id: b23, day: -111, thread: b, from: ana}
+  - {id: b24, day: -115, thread: b, from: ana}
+
+# 36 mail touches, 12 per 30 days (O3, B1).
+baseline_12_per_30: &baseline_12_per_30
+  - {id: b01, day: -31, thread: b, from: ana}
+  - {id: b02, day: -33, thread: b, from: ana}
+  - {id: b03, day: -36, thread: b, from: ana}
+  - {id: b04, day: -38, thread: b, from: ana}
+  - {id: b05, day: -41, thread: b, from: ana}
+  - {id: b06, day: -43, thread: b, from: ana}
+  - {id: b07, day: -46, thread: b, from: ana}
+  - {id: b08, day: -48, thread: b, from: ana}
+  - {id: b09, day: -51, thread: b, from: ana}
+  - {id: b10, day: -53, thread: b, from: ana}
+  - {id: b11, day: -56, thread: b, from: ana}
+  - {id: b12, day: -58, thread: b, from: ana}
+  - {id: b13, day: -61, thread: b, from: ana}
+  - {id: b14, day: -63, thread: b, from: ana}
+  - {id: b15, day: -66, thread: b, from: ana}
+  - {id: b16, day: -68, thread: b, from: ana}
+  - {id: b17, day: -71, thread: b, from: ana}
+  - {id: b18, day: -73, thread: b, from: ana}
+  - {id: b19, day: -76, thread: b, from: ana}
+  - {id: b20, day: -78, thread: b, from: ana}
+  - {id: b21, day: -81, thread: b, from: ana}
+  - {id: b22, day: -83, thread: b, from: ana}
+  - {id: b23, day: -86, thread: b, from: ana}
+  - {id: b24, day: -88, thread: b, from: ana}
+  - {id: b25, day: -91, thread: b, from: ana}
+  - {id: b26, day: -93, thread: b, from: ana}
+  - {id: b27, day: -96, thread: b, from: ana}
+  - {id: b28, day: -98, thread: b, from: ana}
+  - {id: b29, day: -101, thread: b, from: ana}
+  - {id: b30, day: -103, thread: b, from: ana}
+  - {id: b31, day: -106, thread: b, from: ana}
+  - {id: b32, day: -108, thread: b, from: ana}
+  - {id: b33, day: -111, thread: b, from: ana}
+  - {id: b34, day: -113, thread: b, from: ana}
+  - {id: b35, day: -116, thread: b, from: ana}
+  - {id: b36, day: -118, thread: b, from: ana}
+
+# 10 email latency baseline pairs, 4h gaps, days 61-240 (O4, B4, O6).
+latency_email_baseline: &latency_email_baseline
+  - {id: fb1, day: -70, hour: 9, thread: tb1, from: firm}
+  - {id: cb1, day: -70, hour: 13, thread: tb1, from: pia}
+  - {id: fb2, day: -90, hour: 9, thread: tb2, from: firm}
+  - {id: cb2, day: -90, hour: 13, thread: tb2, from: pia}
+  - {id: fb3, day: -110, hour: 9, thread: tb3, from: firm}
+  - {id: cb3, day: -110, hour: 13, thread: tb3, from: pia}
+  - {id: fb4, day: -130, hour: 9, thread: tb4, from: firm}
+  - {id: cb4, day: -130, hour: 13, thread: tb4, from: pia}
+  - {id: fb5, day: -150, hour: 9, thread: tb5, from: firm}
+  - {id: cb5, day: -150, hour: 13, thread: tb5, from: pia}
+
+# 10 chat latency baseline pairs, 0.5 working-hour gaps (O4, B2, B4).
+latency_chat_baseline: &latency_chat_baseline
+  - {id: gb1, day: -70, hour: 10, minute: 0, channel: g1, source: chat, from: firm}
+  - {id: hb1, day: -70, hour: 10, minute: 30, channel: g1, source: chat, from: pia}
+  - {id: gb2, day: -88, hour: 10, minute: 0, channel: g2, source: chat, from: firm}
+  - {id: hb2, day: -88, hour: 10, minute: 30, channel: g2, source: chat, from: pia}
+  - {id: gb3, day: -106, hour: 10, minute: 0, channel: g3, source: chat, from: firm}
+  - {id: hb3, day: -106, hour: 10, minute: 30, channel: g3, source: chat, from: pia}
+  - {id: gb4, day: -124, hour: 10, minute: 0, channel: g4, source: chat, from: firm}
+  - {id: hb4, day: -124, hour: 10, minute: 30, channel: g4, source: chat, from: pia}
+  - {id: gb5, day: -142, hour: 10, minute: 0, channel: g5, source: chat, from: firm}
+  - {id: hb5, day: -142, hour: 10, minute: 30, channel: g5, source: chat, from: pia}
+  - {id: gb6, day: -160, hour: 10, minute: 0, channel: g6, source: chat, from: firm}
+  - {id: hb6, day: -160, hour: 10, minute: 30, channel: g6, source: chat, from: pia}
+  - {id: gb7, day: -178, hour: 10, minute: 0, channel: g7, source: chat, from: firm}
+  - {id: hb7, day: -178, hour: 10, minute: 30, channel: g7, source: chat, from: pia}
+  - {id: gb8, day: -196, hour: 10, minute: 0, channel: g8, source: chat, from: firm}
+  - {id: hb8, day: -196, hour: 10, minute: 30, channel: g8, source: chat, from: pia}
+  - {id: gb9, day: -214, hour: 10, minute: 0, channel: g9, source: chat, from: firm}
+  - {id: hb9, day: -214, hour: 10, minute: 30, channel: g9, source: chat, from: pia}
+  - {id: gb10, day: -232, hour: 10, minute: 0, channel: g10, source: chat, from: firm}
+  - {id: hb10, day: -232, hour: 10, minute: 30, channel: g10, source: chat, from: pia}
+
+reduced_engagement:
+  - name: O1 mail to Slack move keeps total touches so nothing fires
+    why: "spec §2: baselines use the same touch function, so a client moving from mail to Slack shows continuity"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_8_per_30
+    extra_records:
+      - {id: c1, day: -2, hour: 10, channel: d1, source: chat, from: ana}
+      - {id: c2, day: -5, hour: 10, channel: d2, source: chat, from: ana}
+      - {id: c3, day: -9, hour: 10, channel: d3, source: chat, from: ana}
+      - {id: c4, day: -13, hour: 10, channel: d4, source: chat, from: ana}
+      - {id: c5, day: -17, hour: 10, channel: d5, source: chat, from: ana}
+      - {id: c6, day: -21, hour: 10, channel: d6, source: chat, from: ana}
+      - {id: c7, day: -25, hour: 10, channel: d7, source: chat, from: ana}
+      - {id: c8, day: -29, hour: 10, channel: d8, source: chat, from: ana}
+    expect: []
+    caveats: []
+
+  - name: O2 silence on both sources is high
+    why: "spec §7 O2: 0 emails and 0 chat in the last 30 days is reduced_engagement high"
+    rule: reduced_engagement
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_8_per_30
+    expect:
+      - {type: reduced_engagement, severity: high, basis: metadata, dedupe_key: volume, evidence: []}
+    inputs: {messages_30: 0, baseline_per_30: 8.0}
+    caveats: []
+
+  - name: O3 thirty chat messages in three bursts count as three touches
+    why: "spec §2: consecutive client chat in one channel with gaps of at most 30 minutes is one touch; 3 touches against a 12-per-30 baseline fires medium"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_12_per_30
+    extra_records:
+      - {id: a1, day: -3, hour: 10, minute: 0, channel: ca, source: chat, from: ana}
+      - {id: a2, day: -3, hour: 10, minute: 1, channel: ca, source: chat, from: ana}
+      - {id: a3, day: -3, hour: 10, minute: 2, channel: ca, source: chat, from: ana}
+      - {id: a4, day: -3, hour: 10, minute: 3, channel: ca, source: chat, from: ana}
+      - {id: a5, day: -3, hour: 10, minute: 4, channel: ca, source: chat, from: ana}
+      - {id: a6, day: -3, hour: 10, minute: 5, channel: ca, source: chat, from: ana}
+      - {id: a7, day: -3, hour: 10, minute: 6, channel: ca, source: chat, from: ana}
+      - {id: a8, day: -3, hour: 10, minute: 7, channel: ca, source: chat, from: ana}
+      - {id: a9, day: -3, hour: 10, minute: 8, channel: ca, source: chat, from: ana}
+      - {id: a10, day: -3, hour: 10, minute: 9, channel: ca, source: chat, from: ana}
+      - {id: b1, day: -10, hour: 10, minute: 0, channel: cb, source: chat, from: ana}
+      - {id: b2, day: -10, hour: 10, minute: 2, channel: cb, source: chat, from: ana}
+      - {id: b3, day: -10, hour: 10, minute: 4, channel: cb, source: chat, from: ana}
+      - {id: b4, day: -10, hour: 10, minute: 6, channel: cb, source: chat, from: ana}
+      - {id: b5, day: -10, hour: 10, minute: 8, channel: cb, source: chat, from: ana}
+      - {id: b6, day: -10, hour: 10, minute: 10, channel: cb, source: chat, from: ana}
+      - {id: b7, day: -10, hour: 10, minute: 12, channel: cb, source: chat, from: ana}
+      - {id: b8, day: -10, hour: 10, minute: 14, channel: cb, source: chat, from: ana}
+      - {id: b9, day: -10, hour: 10, minute: 16, channel: cb, source: chat, from: ana}
+      - {id: b10, day: -10, hour: 10, minute: 18, channel: cb, source: chat, from: ana}
+      - {id: c1, day: -20, hour: 10, minute: 0, channel: cc, source: chat, from: ana}
+      - {id: c2, day: -20, hour: 10, minute: 5, channel: cc, source: chat, from: ana}
+      - {id: c3, day: -20, hour: 10, minute: 10, channel: cc, source: chat, from: ana}
+      - {id: c4, day: -20, hour: 10, minute: 15, channel: cc, source: chat, from: ana}
+      - {id: c5, day: -20, hour: 10, minute: 20, channel: cc, source: chat, from: ana}
+      - {id: c6, day: -20, hour: 10, minute: 25, channel: cc, source: chat, from: ana}
+      - {id: c7, day: -20, hour: 10, minute: 27, channel: cc, source: chat, from: ana}
+      - {id: c8, day: -20, hour: 10, minute: 28, channel: cc, source: chat, from: ana}
+      - {id: c9, day: -20, hour: 10, minute: 29, channel: cc, source: chat, from: ana}
+      - {id: c10, day: -20, hour: 10, minute: 29, channel: cc, source: chat, from: ana}
+    expect:
+      - {type: reduced_engagement, severity: medium, basis: metadata, dedupe_key: volume, evidence: []}
+    caveats: []
+
+  - name: B1a two messages 29 minutes apart are one touch
+    why: "spec §2 boundary: gaps of at most 30 minutes collapse; one touch against a 12 baseline still fires medium"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_12_per_30
+    extra_records:
+      - {id: m1, day: -3, hour: 10, minute: 0, channel: ca, source: chat, from: ana}
+      - {id: m2, day: -3, hour: 10, minute: 29, channel: ca, source: chat, from: ana}
+    expect:
+      - {type: reduced_engagement, severity: medium, basis: metadata, dedupe_key: volume, evidence: []}
+    inputs: {messages_30: 1}
+    caveats: []
+
+  - name: B1b two messages 31 minutes apart are two touches
+    why: "spec §2 boundary: a gap over 30 minutes starts a new burst"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_12_per_30
+    extra_records:
+      - {id: m1, day: -3, hour: 10, minute: 0, channel: ca, source: chat, from: ana}
+      - {id: m2, day: -3, hour: 10, minute: 31, channel: ca, source: chat, from: ana}
+    expect:
+      - {type: reduced_engagement, severity: medium, basis: metadata, dedupe_key: volume, evidence: []}
+    inputs: {messages_30: 2}
+    caveats: []
+
+  - name: B5 chat-only client with collapsed recent volume still fires
+    why: "spec §2: baselines work with zero mail; 18 chat touches baseline, none recent"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records:
+      - {id: b01, day: -31, hour: 10, channel: c1, source: chat, from: ana}
+      - {id: b02, day: -33, hour: 10, channel: c2, source: chat, from: ana}
+      - {id: b03, day: -36, hour: 10, channel: c3, source: chat, from: ana}
+      - {id: b04, day: -38, hour: 10, channel: c4, source: chat, from: ana}
+      - {id: b05, day: -41, hour: 10, channel: c5, source: chat, from: ana}
+      - {id: b06, day: -43, hour: 10, channel: c6, source: chat, from: ana}
+      - {id: b07, day: -46, hour: 10, channel: c7, source: chat, from: ana}
+      - {id: b08, day: -48, hour: 10, channel: c8, source: chat, from: ana}
+      - {id: b09, day: -51, hour: 10, channel: c9, source: chat, from: ana}
+      - {id: b10, day: -53, hour: 10, channel: c10, source: chat, from: ana}
+      - {id: b11, day: -56, hour: 10, channel: c11, source: chat, from: ana}
+      - {id: b12, day: -58, hour: 10, channel: c12, source: chat, from: ana}
+      - {id: b13, day: -61, hour: 10, channel: c13, source: chat, from: ana}
+      - {id: b14, day: -63, hour: 10, channel: c14, source: chat, from: ana}
+      - {id: b15, day: -66, hour: 10, channel: c15, source: chat, from: ana}
+      - {id: b16, day: -68, hour: 10, channel: c16, source: chat, from: ana}
+      - {id: b17, day: -71, hour: 10, channel: c17, source: chat, from: ana}
+      - {id: b18, day: -73, hour: 10, channel: c18, source: chat, from: ana}
+    expect:
+      - {type: reduced_engagement, severity: high, basis: metadata, dedupe_key: volume, evidence: []}
+    caveats: []
+
+  - name: B-empty no baseline and no recent volume never fires
+    why: "unchanged guard: below min_baseline_per_window nothing fires"
+    rule: reduced_engagement
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records:
+      - {id: r1, day: -3, thread: t1, from: ana}
+    expect: []
+    caveats: []
+
+  - name: O9 two other firm authors and owner share 0.3 suppresses volume
+    why: "spec §5: >= 2 other firm authors and owner share below 0.5 suppresses uses_volume rules with caveat participant_coverage"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}, {id: cole, firm: true}, {id: blair, firm: true}]
+    owner: olivia
+    records: *baseline_8_per_30
+    extra_records:
+      - {id: f1, day: -10, thread: f, from: owner}
+      - {id: f2, day: -40, thread: f, from: owner}
+      - {id: f3, day: -80, thread: f, from: owner}
+      - {id: f4, day: -11, thread: f, from: cole}
+      - {id: f5, day: -12, thread: f, from: cole}
+      - {id: f6, day: -41, thread: f, from: cole}
+      - {id: f7, day: -42, thread: f, from: cole}
+      - {id: f8, day: -13, thread: f, from: blair}
+      - {id: f9, day: -43, thread: f, from: blair}
+      - {id: f10, day: -81, thread: f, from: blair}
+    expect: []
+    caveats: [participant_coverage]
+
+  - name: O10 owner share 0.8 keeps volume rules active
+    why: "spec §5: owner share at or above 0.5 is not a partial view"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}, {id: cole, firm: true}, {id: blair, firm: true}]
+    owner: olivia
+    records: *baseline_8_per_30
+    extra_records:
+      - {id: f1, day: -10, thread: f, from: owner}
+      - {id: f2, day: -20, thread: f, from: owner}
+      - {id: f3, day: -30, thread: f, from: owner}
+      - {id: f4, day: -40, thread: f, from: owner}
+      - {id: f5, day: -50, thread: f, from: owner}
+      - {id: f6, day: -60, thread: f, from: owner}
+      - {id: f7, day: -70, thread: f, from: owner}
+      - {id: f8, day: -80, thread: f, from: owner}
+      - {id: f9, day: -11, thread: f, from: cole}
+      - {id: f10, day: -41, thread: f, from: blair}
+    expect:
+      - {type: reduced_engagement, severity: high, basis: metadata, dedupe_key: volume, evidence: []}
+    caveats: []
+
+  - name: O11 owner silent while colleagues write is a partial view
+    why: "spec §5: true when the owner authored nothing although firm-side records exist"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}, {id: cole, firm: true}, {id: blair, firm: true}]
+    owner: olivia
+    records: *baseline_8_per_30
+    extra_records:
+      - {id: f1, day: -10, thread: f, from: cole}
+      - {id: f2, day: -40, thread: f, from: cole}
+      - {id: f3, day: -80, thread: f, from: cole}
+      - {id: f4, day: -11, thread: f, from: blair}
+      - {id: f5, day: -41, thread: f, from: blair}
+    expect: []
+    caveats: [participant_coverage]
+
+  - name: O15 empty owner ids never suppress
+    why: "spec §5: partial view is false when owner_person_ids is empty; behaviour as v2"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}, {id: cole, firm: true}, {id: blair, firm: true}]
+    owners: []
+    records: *baseline_8_per_30
+    expect:
+      - {type: reduced_engagement, severity: high, basis: metadata, dedupe_key: volume, evidence: []}
+    caveats: []
+
+  - name: B7 owner share exactly 0.5 stays active
+    why: "spec §5 boundary: the condition is owner share below 0.5, so exactly 0.5 is not partial (assumed >= reading)"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}, {id: cole, firm: true}, {id: blair, firm: true}]
+    owner: olivia
+    records: *baseline_8_per_30
+    extra_records:
+      - {id: f1, day: -10, thread: f, from: owner}
+      - {id: f2, day: -20, thread: f, from: owner}
+      - {id: f3, day: -30, thread: f, from: owner}
+      - {id: f4, day: -40, thread: f, from: owner}
+      - {id: f5, day: -50, thread: f, from: owner}
+      - {id: f6, day: -11, thread: f, from: cole}
+      - {id: f7, day: -41, thread: f, from: cole}
+      - {id: f8, day: -71, thread: f, from: cole}
+      - {id: f9, day: -12, thread: f, from: blair}
+      - {id: f10, day: -42, thread: f, from: blair}
+    expect:
+      - {type: reduced_engagement, severity: high, basis: metadata, dedupe_key: volume, evidence: []}
+    caveats: []
+
+  - name: B8 two owners both count as owner-authored
+    why: "spec §1 owner_person_ids: every listed firm person is the owner for share counting"
+    rule: reduced_engagement
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}, {id: cole, firm: true}, {id: blair, firm: true}]
+    owners: [olivia, owen]
+    records: *baseline_8_per_30
+    extra_records:
+      - {id: f1, day: -10, thread: f, from: olivia}
+      - {id: f2, day: -20, thread: f, from: olivia}
+      - {id: f3, day: -30, thread: f, from: olivia}
+      - {id: f4, day: -40, thread: f, from: olivia}
+      - {id: f5, day: -50, thread: f, from: owen}
+      - {id: f6, day: -60, thread: f, from: owen}
+      - {id: f7, day: -70, thread: f, from: owen}
+      - {id: f8, day: -80, thread: f, from: owen}
+      - {id: f9, day: -11, thread: f, from: cole}
+      - {id: f10, day: -41, thread: f, from: blair}
+    expect:
+      - {type: reduced_engagement, severity: high, basis: metadata, dedupe_key: volume, evidence: []}
+    caveats: []
+
+client_reply_latency_drift:
+  - name: O4 chat latency drift fires with its own key and source
+    why: "spec §3: each source evaluated separately; chat dedupe is latency:chat with inputs.source chat"
+    rule: client_reply_latency_drift
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_chat_baseline
+    extra_records:
+      - {id: gr1, day: -5, hour: 10, minute: 0, channel: r1, source: chat, from: firm}
+      - {id: hr1, day: -5, hour: 14, minute: 0, channel: r1, source: chat, from: pia}
+      - {id: gr2, day: -12, hour: 10, minute: 0, channel: r2, source: chat, from: firm}
+      - {id: hr2, day: -12, hour: 14, minute: 0, channel: r2, source: chat, from: pia}
+      - {id: gr3, day: -19, hour: 10, minute: 0, channel: r3, source: chat, from: firm}
+      - {id: hr3, day: -19, hour: 14, minute: 0, channel: r3, source: chat, from: pia}
+      - {id: gr4, day: -26, hour: 10, minute: 0, channel: r4, source: chat, from: firm}
+      - {id: hr4, day: -26, hour: 14, minute: 0, channel: r4, source: chat, from: pia}
+      - {id: gr5, day: -33, hour: 10, minute: 0, channel: r5, source: chat, from: firm}
+      - {id: hr5, day: -33, hour: 14, minute: 0, channel: r5, source: chat, from: pia}
+    expect:
+      - {type: client_reply_latency_drift, severity: medium, basis: metadata, dedupe_key: latency:chat, evidence: []}
+    inputs: {source: chat}
+    caveats: []
+
+  - name: O5 friday evening to monday morning counts half a working hour
+    why: "spec §3: chat gaps count working hours in the workspace time zone; Fri 17:45 to Mon 09:15 is 0.5 working hours"
+    rule: client_reply_latency_drift
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_chat_baseline
+    extra_records:
+      - {id: gr1, day: -5, hour: 17, minute: 45, channel: r1, source: chat, from: firm}
+      - {id: hr1, day: -2, hour: 9, minute: 15, channel: r1, source: chat, from: pia}
+      - {id: gr2, day: -12, hour: 17, minute: 45, channel: r2, source: chat, from: firm}
+      - {id: hr2, day: -9, hour: 9, minute: 15, channel: r2, source: chat, from: pia}
+      - {id: gr3, day: -19, hour: 17, minute: 45, channel: r3, source: chat, from: firm}
+      - {id: hr3, day: -16, hour: 9, minute: 15, channel: r3, source: chat, from: pia}
+      - {id: gr4, day: -26, hour: 17, minute: 45, channel: r4, source: chat, from: firm}
+      - {id: hr4, day: -23, hour: 9, minute: 15, channel: r4, source: chat, from: pia}
+      - {id: gr5, day: -33, hour: 17, minute: 45, channel: r5, source: chat, from: firm}
+      - {id: hr5, day: -30, hour: 9, minute: 15, channel: r5, source: chat, from: pia}
+    expect: []
+    caveats: []
+
+  - name: O6 email latency behaves exactly as signals.v2
+    why: "spec §3: email gaps are wall-clock hours with unchanged thresholds"
+    rule: client_reply_latency_drift
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_email_baseline
+    extra_records:
+      - {id: fr1, day: -50, hour: 9, thread: tr1, from: firm}
+      - {id: cr1, day: -48, hour: 9, thread: tr1, from: pia}
+      - {id: fr2, day: -30, hour: 9, thread: tr2, from: firm}
+      - {id: cr2, day: -28, hour: 9, thread: tr2, from: pia}
+      - {id: fr3, day: -15, hour: 9, thread: tr3, from: firm}
+      - {id: cr3, day: -13, hour: 9, thread: tr3, from: pia}
+    expect:
+      - {type: client_reply_latency_drift, severity: medium, basis: metadata, dedupe_key: latency, evidence: []}
+    inputs: {recent_median_h: 48.0, base_median_h: 4.0, recent_n: 3, base_n: 5}
+    caveats: []
+
+  - name: B2 exact chat thresholds fire
+    why: "spec §3 boundary: recent median exactly min_recent_median_wh (3) at exactly min_ratio (2) fires (assumed >= reading)"
+    rule: client_reply_latency_drift
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_chat_baseline
+    extra_records:
+      - {id: gr1, day: -5, hour: 10, minute: 0, channel: r1, source: chat, from: firm}
+      - {id: hr1, day: -5, hour: 13, minute: 0, channel: r1, source: chat, from: pia}
+      - {id: gr2, day: -12, hour: 10, minute: 0, channel: r2, source: chat, from: firm}
+      - {id: hr2, day: -12, hour: 13, minute: 0, channel: r2, source: chat, from: pia}
+      - {id: gr3, day: -19, hour: 10, minute: 0, channel: r3, source: chat, from: firm}
+      - {id: hr3, day: -19, hour: 13, minute: 0, channel: r3, source: chat, from: pia}
+      - {id: gr4, day: -26, hour: 10, minute: 0, channel: r4, source: chat, from: firm}
+      - {id: hr4, day: -26, hour: 13, minute: 0, channel: r4, source: chat, from: pia}
+      - {id: gr5, day: -33, hour: 10, minute: 0, channel: r5, source: chat, from: firm}
+      - {id: hr5, day: -33, hour: 13, minute: 0, channel: r5, source: chat, from: pia}
+    expect:
+      - {type: client_reply_latency_drift, severity: medium, basis: metadata, dedupe_key: latency:chat, evidence: []}
+    inputs: {source: chat}
+    caveats: []
+
+  - name: B3 weekend pairs across daylight saving stay comparable
+    why: "spec §3: working_hours_between includes weekends and daylight saving; Fri 17:00 to Mon 09:30 ET is 1.5 working hours on both sides of the March change"
+    rule: client_reply_latency_drift
+    timezone: America/New_York
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records:
+      - {id: gb1, day: -208, hour: 17, minute: 0, channel: g1, source: chat, from: firm}
+      - {id: hb1, day: -205, hour: 9, minute: 30, channel: g1, source: chat, from: pia}
+      - {id: gb2, day: -215, hour: 17, minute: 0, channel: g2, source: chat, from: firm}
+      - {id: hb2, day: -212, hour: 9, minute: 30, channel: g2, source: chat, from: pia}
+      - {id: gb3, day: -222, hour: 17, minute: 0, channel: g3, source: chat, from: firm}
+      - {id: hb3, day: -219, hour: 9, minute: 30, channel: g3, source: chat, from: pia}
+      - {id: gb4, day: -229, hour: 17, minute: 0, channel: g4, source: chat, from: firm}
+      - {id: hb4, day: -226, hour: 9, minute: 30, channel: g4, source: chat, from: pia}
+      - {id: gb5, day: -236, hour: 17, minute: 0, channel: g5, source: chat, from: firm}
+      - {id: hb5, day: -233, hour: 9, minute: 30, channel: g5, source: chat, from: pia}
+      - {id: gb6, day: -243, hour: 17, minute: 0, channel: g6, source: chat, from: firm}
+      - {id: hb6, day: -240, hour: 9, minute: 30, channel: g6, source: chat, from: pia}
+      - {id: gb7, day: -250, hour: 17, minute: 0, channel: g7, source: chat, from: firm}
+      - {id: hb7, day: -247, hour: 9, minute: 30, channel: g7, source: chat, from: pia}
+      - {id: gb8, day: -257, hour: 17, minute: 0, channel: g8, source: chat, from: firm}
+      - {id: hb8, day: -254, hour: 9, minute: 30, channel: g8, source: chat, from: pia}
+      - {id: gb9, day: -264, hour: 17, minute: 0, channel: g9, source: chat, from: firm}
+      - {id: hb9, day: -261, hour: 9, minute: 30, channel: g9, source: chat, from: pia}
+      - {id: gb10, day: -271, hour: 17, minute: 0, channel: g10, source: chat, from: firm}
+      - {id: hb10, day: -268, hour: 9, minute: 30, channel: g10, source: chat, from: pia}
+    extra_records:
+      - {id: gr1, day: -5, hour: 17, minute: 0, channel: r1, source: chat, from: firm}
+      - {id: hr1, day: -2, hour: 9, minute: 30, channel: r1, source: chat, from: pia}
+      - {id: gr2, day: -12, hour: 17, minute: 0, channel: r2, source: chat, from: firm}
+      - {id: hr2, day: -9, hour: 9, minute: 30, channel: r2, source: chat, from: pia}
+      - {id: gr3, day: -19, hour: 17, minute: 0, channel: r3, source: chat, from: firm}
+      - {id: hr3, day: -16, hour: 9, minute: 30, channel: r3, source: chat, from: pia}
+      - {id: gr4, day: -26, hour: 17, minute: 0, channel: r4, source: chat, from: firm}
+      - {id: hr4, day: -23, hour: 9, minute: 30, channel: r4, source: chat, from: pia}
+      - {id: gr5, day: -33, hour: 17, minute: 0, channel: r5, source: chat, from: firm}
+      - {id: hr5, day: -30, hour: 9, minute: 30, channel: r5, source: chat, from: pia}
+    expect: []
+    caveats: []
+
+  - name: B4 email and chat latency drift fire side by side
+    why: "spec §3: each source evaluated separately with its own thresholds and dedupe key"
+    rule: client_reply_latency_drift
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_email_baseline
+    extra_records:
+      - {id: gb1, day: -70, hour: 10, minute: 0, channel: g1, source: chat, from: firm}
+      - {id: hb1, day: -70, hour: 10, minute: 30, channel: g1, source: chat, from: pia}
+      - {id: gb2, day: -88, hour: 10, minute: 0, channel: g2, source: chat, from: firm}
+      - {id: hb2, day: -88, hour: 10, minute: 30, channel: g2, source: chat, from: pia}
+      - {id: gb3, day: -106, hour: 10, minute: 0, channel: g3, source: chat, from: firm}
+      - {id: hb3, day: -106, hour: 10, minute: 30, channel: g3, source: chat, from: pia}
+      - {id: gb4, day: -124, hour: 10, minute: 0, channel: g4, source: chat, from: firm}
+      - {id: hb4, day: -124, hour: 10, minute: 30, channel: g4, source: chat, from: pia}
+      - {id: gb5, day: -142, hour: 10, minute: 0, channel: g5, source: chat, from: firm}
+      - {id: hb5, day: -142, hour: 10, minute: 30, channel: g5, source: chat, from: pia}
+      - {id: gb6, day: -160, hour: 10, minute: 0, channel: g6, source: chat, from: firm}
+      - {id: hb6, day: -160, hour: 10, minute: 30, channel: g6, source: chat, from: pia}
+      - {id: gb7, day: -178, hour: 10, minute: 0, channel: g7, source: chat, from: firm}
+      - {id: hb7, day: -178, hour: 10, minute: 30, channel: g7, source: chat, from: pia}
+      - {id: gb8, day: -196, hour: 10, minute: 0, channel: g8, source: chat, from: firm}
+      - {id: hb8, day: -196, hour: 10, minute: 30, channel: g8, source: chat, from: pia}
+      - {id: gb9, day: -214, hour: 10, minute: 0, channel: g9, source: chat, from: firm}
+      - {id: hb9, day: -214, hour: 10, minute: 30, channel: g9, source: chat, from: pia}
+      - {id: gb10, day: -232, hour: 10, minute: 0, channel: g10, source: chat, from: firm}
+      - {id: hb10, day: -232, hour: 10, minute: 30, channel: g10, source: chat, from: pia}
+      - {id: fr1, day: -50, hour: 9, thread: tr1, from: firm}
+      - {id: cr1, day: -48, hour: 9, thread: tr1, from: pia}
+      - {id: fr2, day: -30, hour: 9, thread: tr2, from: firm}
+      - {id: cr2, day: -28, hour: 9, thread: tr2, from: pia}
+      - {id: fr3, day: -15, hour: 9, thread: tr3, from: firm}
+      - {id: cr3, day: -13, hour: 9, thread: tr3, from: pia}
+      - {id: gr1, day: -5, hour: 10, minute: 0, channel: r1, source: chat, from: firm}
+      - {id: hr1, day: -5, hour: 14, minute: 0, channel: r1, source: chat, from: pia}
+      - {id: gr2, day: -12, hour: 10, minute: 0, channel: r2, source: chat, from: firm}
+      - {id: hr2, day: -12, hour: 14, minute: 0, channel: r2, source: chat, from: pia}
+      - {id: gr3, day: -19, hour: 10, minute: 0, channel: r3, source: chat, from: firm}
+      - {id: hr3, day: -19, hour: 14, minute: 0, channel: r3, source: chat, from: pia}
+      - {id: gr4, day: -26, hour: 10, minute: 0, channel: r4, source: chat, from: firm}
+      - {id: hr4, day: -26, hour: 14, minute: 0, channel: r4, source: chat, from: pia}
+      - {id: gr5, day: -33, hour: 10, minute: 0, channel: r5, source: chat, from: firm}
+      - {id: hr5, day: -33, hour: 14, minute: 0, channel: r5, source: chat, from: pia}
+    expect:
+      - {type: client_reply_latency_drift, severity: medium, basis: metadata, dedupe_key: latency, evidence: []}
+      - {type: client_reply_latency_drift, severity: medium, basis: metadata, dedupe_key: latency:chat, evidence: []}
+    caveats: []
+
+delivery_complaint:
+  - name: O7 chat complaint cites slack evidence
+    why: "spec §7 O7 and §6: complaint extraction on a chat record cites evidence with source slack (source itself is asserted at the evidence-row level in L2S-11)"
+    rule: delivery_complaint
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -3, channel: c1, source: chat, from: dana, items: [{kind: complaint, subtype: delay, evidence: e1}]}
+    expect:
+      - {type: delivery_complaint, severity: medium, basis: evidence, dedupe_key: delay, evidence: [e1]}
+    caveats: []
+
+late_commitment:
+  - name: O8 slack commitment twenty days overdue is high
+    why: "spec §7 O8: a firm commitment due 20 days ago and still open is late_commitment (high at 14 days past due)"
+    rule: late_commitment
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    commitments:
+      - {id: c1, side: firm, due: -20, status: open, evidence: [e1]}
+    expect:
+      - {type: late_commitment, severity: high, basis: evidence, dedupe_key: "@commitment:c1", evidence: [e1]}
+    caveats: []
+
+tone_decline:
+  - name: O14 chat tone never feeds the decline rule
+    why: "spec §2: tone_decline counts email records only in signals.v3"
+    rule: tone_decline
+    timezone: UTC
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -2, thread: t1, from: dana}
+      - {id: r2, day: -5, thread: t2, from: dana}
+      - {id: r3, day: -8, thread: t3, from: dana}
+      - {id: r7, day: -1, channel: q1, source: chat, from: dana, items: [{kind: tone, tone: negative, evidence: e4}]}
+      - {id: r8, day: -4, channel: q2, source: chat, from: dana, items: [{kind: tone, tone: negative, evidence: e5}]}
+      - {id: r9, day: -7, channel: q3, source: chat, from: dana, items: [{kind: tone, tone: negative, evidence: e6}]}
+      - {id: r10, day: -11, channel: q4, source: chat, from: dana, items: [{kind: tone, tone: negative, evidence: e7}]}
+      - {id: r11, day: -14, channel: q5, source: chat, from: dana, items: [{kind: tone, tone: negative, evidence: e8}]}
+    extra_records:
+      - {id: n1, day: -1, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e1}]}
+      - {id: n2, day: -3, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e2}]}
+      - {id: n3, day: -5, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e3}]}
+    expect:
+      - {type: tone_decline, severity: high, basis: evidence, dedupe_key: tone, evidence: [e1, e2, e3]}
+    caveats: []

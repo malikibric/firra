@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "policy": {
+      "type": "string",
+      "enum": [
+        "full",
+        "metadata_only",
+        "excluded"
+      ]
+    },
+    "confirm_exclusion": {
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "policy",
+    "confirm_exclusion"
+  ],
+  "additionalProperties": false,
+  "description": "Selecting excluded requires confirm_exclusion: true.",
+  "title": "ClientPolicyRequest",
+  "$id": "https://firra.app/contracts/v1/client_policy_request.json"
+}

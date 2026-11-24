@@ -1,0 +1,1 @@
+{"channels": {}, "expected": "Write a@b.example", "input": "Write <mailto:a@b.example|a@b.example>", "users": {}}

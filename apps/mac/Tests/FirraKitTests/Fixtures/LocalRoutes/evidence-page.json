@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "id": "dfdbc597-73e9-427d-8d09-b5c752359936",
+      "quote": "Synthetic verified quote",
+      "locator": {
+        "end": 24,
+        "start": 0
+      },
+      "deep_link": null,
+      "occurred_at": "2026-10-05T09:37:20.298054Z",
+      "author_name": null,
+      "author_role": null,
+      "subject": null,
+      "source_ref": "d58f1edd",
+      "client_id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e"
+    }
+  ],
+  "next_cursor": null
+}

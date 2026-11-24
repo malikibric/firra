@@ -1,0 +1,18 @@
+{
+  "name": "@firra/db-types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "supabase gen types typescript --local --schema public > src/database.ts && prettier --write src/database.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@firra/config": "workspace:*",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3"
+  }
+}

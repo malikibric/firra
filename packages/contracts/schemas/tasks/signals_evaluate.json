@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/signals_evaluate.json",
+  "title": "SignalsEvaluatePayload",
+  "description": "Payload of signals.evaluate: run the signal rules for every non-excluded client of the workspace and store the result.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trigger"],
+  "properties": {
+    "trigger": {
+      "type": "string",
+      "enum": ["memory", "manual"],
+      "description": "What requested the run (for logs and progress only)."
+    },
+    "as_of": {
+      "type": ["string", "null"],
+      "format": "date",
+      "default": null,
+      "description": "Evaluate as of this UTC day (end of day); null means now. Churned clients are always evaluated at their churn date."
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/onboarding_suggestions.json",
+  "title": "OnboardingSuggestions",
+  "description": "GET /local/onboarding/suggestions: the latest suggestion run. Domains and counts only; no message text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["state", "scanned", "items"],
+  "properties": {
+    "state": { "enum": ["none", "running", "ready", "failed"] },
+    "error_class": { "type": ["string", "null"], "maxLength": 80 },
+    "scanned": { "type": "integer", "minimum": 0 },
+    "items": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["domain", "thread_count", "message_count", "last_seen", "sample_names"],
+        "properties": {
+          "domain": { "type": "string", "maxLength": 253 },
+          "thread_count": { "type": "integer", "minimum": 0 },
+          "message_count": { "type": "integer", "minimum": 0 },
+          "last_seen": { "type": "string", "format": "date-time" },
+          "sample_names": { "type": "array", "maxItems": 3, "items": { "type": "string", "maxLength": 200 } }
+        }
+      }
+    }
+  }
+}

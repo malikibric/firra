@@ -1,0 +1,27 @@
+{
+  "engine_version": "t",
+  "database": "ready",
+  "filevault": null,
+  "connections": [],
+  "ai": {
+    "executor": "conversation_only",
+    "tools": [],
+    "queue": {
+      "pending": 0,
+      "done": 0,
+      "rejected_items": 0
+    },
+    "state": "conversation_only",
+    "resume_at": null,
+    "error_class": null
+  },
+  "relay": {
+    "state": "offline",
+    "device_id": null,
+    "last_connected_at": null
+  },
+  "disk": {
+    "data_bytes": 0
+  },
+  "last_backup_at": null
+}

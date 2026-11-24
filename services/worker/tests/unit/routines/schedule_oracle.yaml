@@ -1,0 +1,383 @@
+# Routine-schedule oracle (T43e): executable form of the `is_due` contract in
+# the original task spec. Written from the spec and the IANA rules alone, not from
+# T43d's implementation; the implementer must not edit expectations. A disagreement is raised with
+# the lead — either the spec or the code is wrong.
+#
+# Format
+#   One group, `is_due`; each case has an `id`, a one-line `why`, an `input` and its `expect`.
+#   input.now_utc      timezone-aware UTC instant, ISO 8601 (quoted so YAML keeps it a string)
+#   input.timezone     IANA zone name passed to zoneinfo.ZoneInfo
+#   input.schedule     hour (0-23), minute (0-59), weekdays (ISO: 1 = Monday … 7 = Sunday)
+#   input.last_run_date  ISO date or null
+#   expect             the local date (ISO) when due, or null
+#   The runner asserts a due result is a `date`, never a `datetime`.
+#
+# Weekday facts used below (ISO weekday in parentheses): 2026-06-01 Mon (1) … 2026-06-05 Fri (5),
+# 2026-06-06 Sat (6), 2026-06-07 Sun (7); 2026-07-03 Fri (5), 2026-07-04 Sat (6); 2026-07-06 Mon
+# (1), 2026-07-05 Sun (7). DST boundaries are Sundays: Berlin 2026-03-29 and 2026-10-25, New York
+# 2026-03-08 and 2026-11-01.
+
+is_due:
+  # ------------------------------------------------------------------------------------------------
+  # Requirement 1: weekday and hour/minute boundaries.
+  # ------------------------------------------------------------------------------------------------
+  - id: weekday-mon-due
+    why: Monday 07:30 local is due for a Monday-Friday schedule
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-01"
+
+  - id: weekday-tue-due
+    why: Tuesday 07:30 local is due
+    input:
+      now_utc: "2026-06-02T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-02"
+
+  - id: weekday-wed-due
+    why: Wednesday 07:30 local is due
+    input:
+      now_utc: "2026-06-03T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-03"
+
+  - id: weekday-thu-due
+    why: Thursday 07:30 local is due
+    input:
+      now_utc: "2026-06-04T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-04"
+
+  - id: weekday-fri-due
+    why: Friday 07:30 local is due
+    input:
+      now_utc: "2026-06-05T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-05"
+
+  - id: weekday-sat-not-due
+    why: Saturday is not in a Monday-Friday schedule
+    input:
+      now_utc: "2026-06-06T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: null
+
+  - id: weekday-sun-not-due
+    why: Sunday is not in a Monday-Friday schedule
+    input:
+      now_utc: "2026-06-07T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: null
+
+  - id: hour-one-minute-before
+    why: one minute before hour:minute is not due
+    input:
+      now_utc: "2026-06-01T05:29:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: null
+
+  - id: hour-exactly-at
+    why: exactly at hour:minute is due ("at or after")
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-01"
+
+  - id: hour-one-minute-after
+    why: one minute after hour:minute is due
+    input:
+      now_utc: "2026-06-01T05:31:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-01"
+
+  - id: minute-one-before
+    why: a schedule with a non-zero minute fires one minute late, not early
+    input:
+      now_utc: "2026-06-01T07:04:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 9, minute: 5, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: null
+
+  - id: minute-exactly-at
+    why: exactly at 09:05 local is due
+    input:
+      now_utc: "2026-06-01T07:05:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 9, minute: 5, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-01"
+
+  - id: minute-one-after
+    why: after 09:05 local is due
+    input:
+      now_utc: "2026-06-01T07:06:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 9, minute: 5, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-01"
+
+  # ------------------------------------------------------------------------------------------------
+  # Requirement 2: the local date decides, not the UTC date.
+  # ------------------------------------------------------------------------------------------------
+  - id: berlin-friday-utc-is-saturday-local
+    why: 22:30 UTC Friday is 00:30 Saturday in Berlin, so a Saturday 00:00 schedule is due for the local day
+    input:
+      now_utc: "2026-07-03T22:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 0, minute: 0, weekdays: [6]}
+      last_run_date: null
+    expect: "2026-07-04"
+
+  - id: berlin-friday-utc-weekday-not-local
+    why: the same instant is not due for Monday-Friday, because locally it is already Saturday
+    input:
+      now_utc: "2026-07-03T22:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 0, minute: 0, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: null
+
+  - id: newyork-monday-utc-is-sunday-local
+    why: 03:00 UTC Monday is 23:00 Sunday in New York, so a Sunday 00:00 schedule is due for the local day
+    input:
+      now_utc: "2026-07-06T03:00:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 0, minute: 0, weekdays: [7]}
+      last_run_date: null
+    expect: "2026-07-05"
+
+  - id: newyork-monday-utc-weekday-not-local
+    why: the same instant is not due for Monday-Friday, because locally it is still Sunday
+    input:
+      now_utc: "2026-07-06T03:00:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 0, minute: 0, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: null
+
+  # ------------------------------------------------------------------------------------------------
+  # Requirement 3: DST. The local time comes from ZoneInfo, so the non-existent and repeated hours
+  # are what the IANA database maps them to; the comparison is "at or after".
+  # ------------------------------------------------------------------------------------------------
+  - id: dst-berlin-spring-0730
+    why: Berlin spring-forward day, a 07:30 schedule is due after the jump
+    input:
+      now_utc: "2026-03-29T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-03-29"
+
+  - id: dst-berlin-spring-0230-gap
+    why: 01:00 UTC is 03:00 CEST; the 02:30 local hour does not exist and 03:00 is already at or after it
+    input:
+      now_utc: "2026-03-29T01:00:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 2, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-03-29"
+
+  - id: dst-berlin-spring-0230-before
+    why: 00:59 UTC is 01:59 CET, before the 02:30 schedule
+    input:
+      now_utc: "2026-03-29T00:59:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 2, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: null
+
+  - id: dst-berlin-fall-0730
+    why: Berlin fall-back day, 06:30 UTC is 07:30 CET and due
+    input:
+      now_utc: "2026-10-25T06:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-10-25"
+
+  - id: dst-berlin-fall-0230-first
+    why: 00:30 UTC is the first 02:30 CET+1 occurrence (CEST)
+    input:
+      now_utc: "2026-10-25T00:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 2, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-10-25"
+
+  - id: dst-berlin-fall-0230-second
+    why: 01:30 UTC is the repeated 02:30 after the clocks fell back (CET)
+    input:
+      now_utc: "2026-10-25T01:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 2, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-10-25"
+
+  - id: dst-newyork-spring-0730
+    why: New York spring-forward day, 11:30 UTC is 07:30 EDT and due
+    input:
+      now_utc: "2026-03-08T11:30:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-03-08"
+
+  - id: dst-newyork-spring-0230-gap
+    why: 07:00 UTC is 03:00 EDT; the 02:30 local hour does not exist and 03:00 is already at or after it
+    input:
+      now_utc: "2026-03-08T07:00:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 2, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-03-08"
+
+  - id: dst-newyork-spring-0230-before
+    why: 06:59 UTC is 01:59 EST, before the 02:30 schedule
+    input:
+      now_utc: "2026-03-08T06:59:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 2, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: null
+
+  - id: dst-newyork-fall-0730
+    why: New York fall-back day, 12:30 UTC is 07:30 EST and due
+    input:
+      now_utc: "2026-11-01T12:30:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-11-01"
+
+  - id: dst-newyork-fall-0230
+    why: 07:30 UTC is 02:30 EST, the single 02:30 on the fall-back day
+    input:
+      now_utc: "2026-11-01T07:30:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 2, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-11-01"
+
+  - id: dst-newyork-fall-0130-first
+    why: 05:30 UTC is the first 01:30 occurrence (EDT); in the US the repeated hour is 01:00-01:59
+    input:
+      now_utc: "2026-11-01T05:30:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 1, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-11-01"
+
+  - id: dst-newyork-fall-0130-second
+    why: 06:30 UTC is the repeated 01:30 after the clocks fell back (EST)
+    input:
+      now_utc: "2026-11-01T06:30:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 1, minute: 30, weekdays: [1, 2, 3, 4, 5, 6, 7]}
+      last_run_date: null
+    expect: "2026-11-01"
+
+  # ------------------------------------------------------------------------------------------------
+  # Requirement 4: only an equal last_run_date blocks.
+  # ------------------------------------------------------------------------------------------------
+  - id: last-run-equal-blocks
+    why: a last run on the same local date blocks the second run
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: "2026-06-01"
+    expect: null
+
+  - id: last-run-yesterday-does-not-block
+    why: an earlier last_run_date does not block
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: "2026-05-31"
+    expect: "2026-06-01"
+
+  - id: last-run-none-does-not-block
+    why: a missing last_run_date does not block
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-01"
+
+  - id: last-run-future-does-not-block
+    why: only equality blocks, so a future (clock-skewed) last_run_date does not
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: "2026-06-02"
+    expect: "2026-06-01"
+
+  # ------------------------------------------------------------------------------------------------
+  # Requirement 5: no catch-up.
+  # ------------------------------------------------------------------------------------------------
+  - id: no-catch-up
+    why: three missed days return only today's local date, never an earlier one
+    input:
+      now_utc: "2026-06-04T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: "2026-06-01"
+    expect: "2026-06-04"
+
+  # ------------------------------------------------------------------------------------------------
+  # Requirement 6: one instant, two zones.
+  # ------------------------------------------------------------------------------------------------
+  - id: two-zones-berlin-due
+    why: at this instant Berlin is 07:30 Monday and due
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-01"
+
+  - id: two-zones-newyork-not-due
+    why: the same instant is 01:30 Monday in New York, before the 07:30 schedule
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "America/New_York"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: null
+
+  # ------------------------------------------------------------------------------------------------
+  # Requirement 7: the result is the local date (the runner also checks it is a `date`).
+  # ------------------------------------------------------------------------------------------------
+  - id: result-is-local-date
+    why: a due result is the local date, here 2026-06-01 in Berlin
+    input:
+      now_utc: "2026-06-01T05:30:00+00:00"
+      timezone: "Europe/Berlin"
+      schedule: {hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5]}
+      last_run_date: null
+    expect: "2026-06-01"

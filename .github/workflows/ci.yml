@@ -1,0 +1,188 @@
+name: CI
+
+# Actions minutes are limited, so CI is cheap by construction:
+# - draft PRs and docs-only changes do not run it; a draft runs it once, when marked ready;
+# - it runs on the PR only, not again on main (main only receives PRs that passed; deploy-staging.yml
+#   no longer waits for this workflow);
+# - the `changes` job decides which heavy jobs a PR needs (a Mac-only change costs about 2 minutes
+#   instead of about 10). A job skipped by `if` still satisfies a required check.
+# Run the definition-of-done commands locally before pushing; CI confirms, it does not iterate.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - "docs/**"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - "README.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  changes:
+    name: Which checks does this change need
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      ts: ${{ steps.f.outputs.ts }}
+      py: ${{ steps.f.outputs.py }}
+      db: ${{ steps.f.outputs.db }}
+      tf: ${{ steps.f.outputs.tf }}
+    steps:
+      - id: f
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            printf 'ts=true\npy=true\ndb=true\ntf=true\n' >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate --jq '.[].filename')
+          hit() { if echo "$files" | grep -qE "$1"; then echo true; else echo false; fi; }
+          all=$(hit '^\.github/workflows/ci\.yml$')
+          ts=$(hit '^(apps/api/|packages/|pnpm-|package\.json|turbo\.json|\.nvmrc|tsconfig|uv\.lock)')
+          py=$(hit '^(services/|packages/contracts/|pyproject\.toml|uv\.lock)')
+          db=$(hit '^(supabase/|apps/api/|services/|packages/|pnpm-|uv\.lock)')
+          tf=$(hit '^infra/')
+          if [ "$all" = true ]; then ts=true; py=true; db=true; tf=true; fi
+          printf 'ts=%s\npy=%s\ndb=%s\ntf=%s\n' "$ts" "$py" "$db" "$tf" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+  typescript:
+    name: TypeScript (lint, typecheck, unit tests, build)
+    needs: changes
+    if: >-
+      (github.event_name != 'pull_request' || !github.event.pull_request.draft) &&
+      needs.changes.outputs.ts == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --all-packages --frozen
+      - name: Contracts codegen is up to date
+        run: pnpm codegen && git diff --exit-code
+      - run: pnpm format:check
+      - run: pnpm turbo run lint typecheck test build
+
+  python:
+    name: Python (ruff, mypy, pytest)
+    needs: changes
+    if: >-
+      (github.event_name != 'pull_request' || !github.event.pull_request.draft) &&
+      needs.changes.outputs.py == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --all-packages --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy services/worker/firra services/worker/tests packages/contracts/python
+      - run: uv run pytest services/worker packages/contracts/python
+
+  database:
+    # The job name is kept (the branch ruleset requires it by name) although the browser e2e is gone.
+    name: Database, integration and e2e (local Supabase)
+    needs: changes
+    if: >-
+      (github.event_name != 'pull_request' || !github.event.pull_request.draft) &&
+      needs.changes.outputs.db == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --all-packages --frozen
+      - name: Start Supabase
+        run: |
+          pnpm exec supabase start -x studio,vector,logflare,imgproxy
+          pnpm exec supabase status -o env \
+            | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY|DB_URL)=' \
+            | sed -e 's/^API_URL=/SUPABASE_URL=/' -e 's/^PUBLISHABLE_KEY=/SUPABASE_PUBLISHABLE_KEY=/' \
+                  -e 's/^SECRET_KEY=/SUPABASE_SECRET_KEY=/' -e 's/^DB_URL=/FIRRA_DATABASE_URL=/' \
+            | tr -d '"' >> "$GITHUB_ENV"
+      - name: pgTAP (RLS and access rules)
+        run: pnpm exec supabase test db
+      - name: Generated DB types are up to date
+        run: pnpm --filter @firra/db-types generate && git diff --exit-code
+      - name: Worker integration tests
+        working-directory: services/worker
+        run: uv run pytest -m integration
+      - name: api -> worker -> DB round-trip
+        run: |
+          pnpm turbo run build --filter=@firra/api^...
+          pnpm --filter @firra/api test:integration
+
+  security:
+    name: Security (gitleaks, Semgrep)
+    needs: changes
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # gitleaks-action lists the PR's commits.
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Semgrep OSS
+        run: >
+          uvx semgrep scan --metrics off --error
+          --config p/default --config p/typescript --config p/python
+          --config p/dockerfile --config p/terraform
+
+  terraform:
+    name: Terraform (fmt, validate)
+    needs: changes
+    if: >-
+      (github.event_name != 'pull_request' || !github.event.pull_request.draft) &&
+      needs.changes.outputs.tf == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+      - run: terraform -chdir=infra/terraform fmt -check -recursive
+      - name: Validate
+        run: |
+          for env in staging prod; do
+            terraform -chdir=infra/terraform/envs/$env init -backend=false -input=false
+            terraform -chdir=infra/terraform/envs/$env validate
+          done

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/local/handshake.json",
+  "title": "HandshakeMessage",
+  "description": "One JSON line on the app <-> engine control socket (docs/plans/local/contracts.md section 2). The only channel that carries long-lived secrets; they never travel over HTTP and are never written to disk by the engine.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type"],
+  "properties": {
+    "type": {
+      "enum": [
+        "hello",
+        "hello_ack",
+        "secret_set",
+        "secret_delete",
+        "secrets_complete",
+        "ready",
+        "event",
+        "ping",
+        "pong",
+        "shutdown",
+        "error"
+      ]
+    },
+    "protocol": { "type": "integer", "const": 1, "description": "hello and hello_ack." },
+    "app_version": { "type": "string", "maxLength": 40, "description": "hello." },
+    "engine_version": { "type": "string", "maxLength": 40, "description": "hello_ack." },
+    "name": {
+      "type": "string",
+      "pattern": "^(google_refresh_token:[A-Za-z0-9_-]{1,64}|slack_user_token:[A-Za-z0-9_-]{1,64}|db_encryption_key|device_signing_key)$",
+      "description": "secret_set and secret_delete. The secret's slot; the id after the colon is the connection id."
+    },
+    "value": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192,
+      "description": "secret_set. The secret itself (base64 for binary keys). Never logged."
+    },
+    "api_port": { "type": "integer", "minimum": 1024, "maximum": 65535, "description": "ready." },
+    "api_token": {
+      "type": "string",
+      "minLength": 32,
+      "maxLength": 128,
+      "description": "ready. Per-start bearer token for the local HTTP API."
+    },
+    "event": {
+      "enum": [
+        "need_reauth",
+        "ai_status_changed",
+        "sync_state_changed",
+        "relay_state_changed",
+        "notify"
+      ],
+      "description": "event (engine to app)."
+    },
+    "connection_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "event need_reauth and sync_state_changed."
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,62}$",
+      "description": "error. A class name, never a message with content."
+    }
+  }
+}

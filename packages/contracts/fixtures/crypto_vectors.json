@@ -1,0 +1,29 @@
+{
+  "description": "AES-256-GCM envelope v1 test vectors shared by services/worker and apps/api. Test key only.",
+  "dek": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+  "vectors": [
+    {
+      "plaintext": "{\"refresh_token\":\"1//abc\"}",
+      "aad": "ws-1:conn-1",
+      "iv": "AAAAAAAAAAAAAAAA",
+      "ciphertext": "v1.AAAAAAAAAAAAAAAA.dZ7Hu9Ne5s5g991ac0n_u-hhZ3wH4AJMouNNJ0zLg6Gr156pFS14Jwpv"
+    },
+    {
+      "plaintext": "",
+      "aad": "ws-2:conn-9",
+      "iv": "AQEBAQEBAQEBAQEB",
+      "ciphertext": "v1.AQEBAQEBAQEBAQEB.CbYmi9b4ld9gTjBUTyYjwQ"
+    },
+    {
+      "plaintext": "ünïcødé ✓",
+      "aad": "ws-3:conn-3",
+      "iv": "AgICAgICAgICAgIC",
+      "ciphertext": "v1.AgICAgICAgICAgIC.WJR3eBa68uOvRgvY0eVJK51QfQNQTpqeCp8pxeHVXQ"
+    }
+  ],
+  "local_kek": {
+    "description": "LocalKek wrapping (local/test only): wrapped = envelope(kek, base64(dek), aad='kek').",
+    "kek_hex": "0000000000000000000000000000000000000000000000000000000000000002",
+    "wrapped_dek": "v1.5xmfepPUnpaKtM0r.66AVK0RVZjxFIp-_5C-OTS3ePfnQtGQlfHSFazsyuxndTCWBwshqAU5SgsKTQ1_ZeuMsJtxv3q8djnsR"
+  }
+}

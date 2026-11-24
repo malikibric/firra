@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/synth_cards.json",
+  "title": "SynthCardsPayload",
+  "description": "Build the week's decision cards for one workspace from its live account assessments (paid wording; runs only when processing is enabled).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trigger", "week"],
+  "properties": {
+    "trigger": { "type": "string", "enum": ["schedule", "manual"] },
+    "week": { "type": "string", "format": "date", "description": "Monday of the ISO week (UTC)." }
+  }
+}

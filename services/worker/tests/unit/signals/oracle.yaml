@@ -1,0 +1,1263 @@
+# Signal oracle (T07): executable form of the rule catalog in the original task spec.
+# Written from the catalog only, independently of the implementation; the implementer must not edit
+# expectations — a disagreement is raised with the lead, and either the catalog or the rule changes.
+#
+# Format
+#   ref: 2026-09-30T00:00:00Z for every case. Records and events are timestamps ref + day days + hour
+#   hours (hour defaults to 12, so `day: -30` is inside "within 30 d"; use `hour: 0` for the exact
+#   boundary). Date fields (contract_start, renewal_date, departed, first_seen, due) are the date
+#   ref + day. For a churned client the runner sets churned_at = ref.
+#   client:      status (active|churned|prospect), policy (full|metadata_only), contract_start (day),
+#                renewal_date (day), notice_period_days
+#   people:      client-side people: id, name, decision_maker, champion, departed (day), first_seen (day)
+#   records:     id, day, hour, thread, from (person id | firm), processed (default true),
+#                items: [{kind, subtype, tone, change, person, text, evidence}] — `evidence` labels
+#                a verified quote on this record
+#   extra_records: appended to records (lets cases share a YAML anchor of baseline records)
+#   commitments: id, side (firm|client), due (day), status, evidence [labels]
+#   events:      day, hour, status (scheduled|held|cancelled|rescheduled)
+#   expect:      exactly the signals this rule produces: type, severity, basis, dedupe_key,
+#                evidence (labels, compared as a set; [] for metadata). dedupe_key references:
+#                "@person:<id>", "@record:<id>", "@commitment:<id>", "@date:<day>" (ISO date of ref+day)
+#   inputs:      optional; when present, compared key by key (floats to 2 decimals)
+#   pending:     optional note; the case is skipped until the named task lands (the implementer of
+#                that task deletes only this line)
+# P2b additions (the design notes):
+#   events[].attendees       attendee_count of the event
+#   items[].budget_direction grow|cut|renewal|neutral; items[].initiative_type
+#   needs:       id, service (label or null), status (open|addressed|dismissed), last_seen (day),
+#                mentions, evidence [labels]; dedupe reference "@need:<id>"
+#   A thread is "started by the client" when its earliest record is a client message; a client
+#   reply is a client message whose immediately preceding record in its thread is the firm's.
+# Only the rule under test runs for a case.
+
+tone_decline:
+  - name: half of six recent client messages are negative against a clean baseline
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -2, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e1}]}
+      - {id: r2, day: -5, thread: t2, from: dana}
+      - {id: r3, day: -8, thread: t3, from: dana, items: [{kind: tone, tone: negative, evidence: e2}]}
+      - {id: r4, day: -12, thread: t4, from: dana}
+      - {id: r5, day: -18, thread: t5, from: dana, items: [{kind: tone, tone: negative, evidence: e3}]}
+      - {id: r6, day: -25, thread: t6, from: dana}
+      - {id: b1, day: -40, thread: t7, from: dana}
+      - {id: b2, day: -70, thread: t8, from: dana}
+      - {id: b3, day: -100, thread: t9, from: dana}
+    expect:
+      - {type: tone_decline, severity: high, basis: evidence, dedupe_key: tone, evidence: [e1, e2, e3]}
+    inputs: {share_30: 0.5, share_base: 0.0, messages_30: 6}
+
+  - name: exactly 30 percent fires at medium when there is no baseline window
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -1, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e1}]}
+      - {id: r2, day: -3, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e2}]}
+      - {id: r3, day: -5, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e3}]}
+      - {id: r4, day: -7, thread: t1, from: dana}
+      - {id: r5, day: -9, thread: t1, from: dana}
+      - {id: r6, day: -11, thread: t1, from: dana}
+      - {id: r7, day: -13, thread: t1, from: dana}
+      - {id: r8, day: -15, thread: t1, from: dana}
+      - {id: r9, day: -17, thread: t1, from: dana}
+      - {id: r10, day: -19, thread: t1, from: dana}
+    expect:
+      - {type: tone_decline, severity: medium, basis: evidence, dedupe_key: tone, evidence: [e1, e2, e3]}
+
+  - name: four processed messages are below the minimum
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -1, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e1}]}
+      - {id: r2, day: -3, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e2}]}
+      - {id: r3, day: -5, thread: t1, from: dana}
+      - {id: r4, day: -7, thread: t1, from: dana}
+      - {id: r5, day: -9, thread: t1, from: dana, processed: false}
+    expect: []
+
+  - name: a message exactly 30 days old belongs to the baseline, leaving four recent ones
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -1, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e1}]}
+      - {id: r2, day: -3, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e2}]}
+      - {id: r3, day: -5, thread: t1, from: dana}
+      - {id: r4, day: -7, thread: t1, from: dana}
+      - {id: r5, day: -30, hour: 0, thread: t1, from: dana}
+    expect: []
+
+  - name: two of seven is below 30 percent
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -1, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e1}]}
+      - {id: r2, day: -3, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e2}]}
+      - {id: r3, day: -5, thread: t1, from: dana}
+      - {id: r4, day: -7, thread: t1, from: dana}
+      - {id: r5, day: -9, thread: t1, from: dana}
+      - {id: r6, day: -11, thread: t1, from: dana}
+      - {id: r7, day: -13, thread: t1, from: dana}
+    expect: []
+
+  - name: an account that was already this negative has no decline
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -1, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e1}]}
+      - {id: r2, day: -3, thread: t1, from: dana, items: [{kind: tone, tone: negative, evidence: e2}]}
+      - {id: r3, day: -5, thread: t1, from: dana}
+      - {id: r4, day: -7, thread: t1, from: dana}
+      - {id: r5, day: -9, thread: t1, from: dana}
+      - {id: b1, day: -40, thread: t2, from: dana, items: [{kind: tone, tone: negative, evidence: e3}]}
+      - {id: b2, day: -50, thread: t2, from: dana}
+      - {id: b3, day: -60, thread: t2, from: dana}
+      - {id: b4, day: -70, thread: t2, from: dana}
+    expect: []
+
+  - name: firm messages and positive tone do not count as negative
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -1, thread: t1, from: dana, items: [{kind: tone, tone: positive, evidence: e1}]}
+      - {id: r2, day: -2, thread: t1, from: firm}
+      - {id: r3, day: -3, thread: t1, from: dana}
+      - {id: r4, day: -5, thread: t1, from: dana}
+      - {id: r5, day: -7, thread: t1, from: dana}
+      - {id: r6, day: -9, thread: t1, from: dana}
+    expect: []
+
+reduced_engagement:
+  - name: three messages against a baseline of eight per 30 days
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: &baseline_24
+      - {id: b01, day: -31, thread: b, from: ana}
+      - {id: b02, day: -35, thread: b, from: ana}
+      - {id: b03, day: -38, thread: b, from: ana}
+      - {id: b04, day: -42, thread: b, from: ana}
+      - {id: b05, day: -45, thread: b, from: ana}
+      - {id: b06, day: -49, thread: b, from: ana}
+      - {id: b07, day: -52, thread: b, from: ana}
+      - {id: b08, day: -56, thread: b, from: ana}
+      - {id: b09, day: -60, thread: b, from: ana}
+      - {id: b10, day: -63, thread: b, from: ana}
+      - {id: b11, day: -67, thread: b, from: ana}
+      - {id: b12, day: -70, thread: b, from: ana}
+      - {id: b13, day: -74, thread: b, from: ana}
+      - {id: b14, day: -77, thread: b, from: ana}
+      - {id: b15, day: -81, thread: b, from: ana}
+      - {id: b16, day: -84, thread: b, from: ana}
+      - {id: b17, day: -88, thread: b, from: ana}
+      - {id: b18, day: -91, thread: b, from: ana}
+      - {id: b19, day: -95, thread: b, from: ana}
+      - {id: b20, day: -99, thread: b, from: ana}
+      - {id: b21, day: -103, thread: b, from: ana}
+      - {id: b22, day: -107, thread: b, from: ana}
+      - {id: b23, day: -111, thread: b, from: ana}
+      - {id: b24, day: -115, thread: b, from: ana}
+    extra_records:
+      - {id: r1, day: -3, thread: r, from: ana}
+      - {id: r2, day: -10, thread: r, from: ana}
+      - {id: r3, day: -20, thread: r, from: ana}
+    expect:
+      - {type: reduced_engagement, severity: medium, basis: metadata, dedupe_key: volume, evidence: []}
+    inputs: {messages_30: 3, baseline_per_30: 8.0}
+
+  - name: exactly half of the baseline still fires
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_24
+    extra_records:
+      - {id: r1, day: -3, thread: r, from: ana}
+      - {id: r2, day: -10, thread: r, from: ana}
+      - {id: r3, day: -20, thread: r, from: ana}
+      - {id: r4, day: -25, thread: r, from: ana}
+    expect:
+      - {type: reduced_engagement, severity: medium, basis: metadata, dedupe_key: volume, evidence: []}
+
+  - name: five messages against eight is a watch-level drop
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_24
+    extra_records:
+      - {id: r1, day: -3, thread: r, from: ana}
+      - {id: r2, day: -10, thread: r, from: ana}
+      - {id: r3, day: -20, thread: r, from: ana}
+      - {id: r4, day: -25, thread: r, from: ana}
+      - {id: r5, day: -29, thread: r, from: ana}
+    expect:
+      - {type: reduced_engagement, severity: low, basis: metadata, dedupe_key: volume, evidence: []}
+
+  - name: six messages against eight is normal
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_24
+    extra_records:
+      - {id: r1, day: -3, thread: r, from: ana}
+      - {id: r2, day: -10, thread: r, from: ana}
+      - {id: r3, day: -20, thread: r, from: ana}
+      - {id: r4, day: -25, thread: r, from: ana}
+      - {id: r5, day: -27, thread: r, from: ana}
+      - {id: r6, day: -29, thread: r, from: ana}
+    expect: []
+
+  - name: silence after a baseline of exactly four per 30 days is high
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records:
+      - {id: b01, day: -32, thread: b, from: ana}
+      - {id: b02, day: -40, thread: b, from: ana}
+      - {id: b03, day: -48, thread: b, from: ana}
+      - {id: b04, day: -56, thread: b, from: ana}
+      - {id: b05, day: -64, thread: b, from: ana}
+      - {id: b06, day: -72, thread: b, from: ana}
+      - {id: b07, day: -80, thread: b, from: ana}
+      - {id: b08, day: -88, thread: b, from: ana}
+      - {id: b09, day: -96, thread: b, from: ana}
+      - {id: b10, day: -104, thread: b, from: ana}
+      - {id: b11, day: -110, thread: b, from: ana}
+      - {id: b12, day: -118, thread: b, from: ana}
+    expect:
+      - {type: reduced_engagement, severity: high, basis: metadata, dedupe_key: volume, evidence: []}
+
+  - name: a quiet account below four per 30 days never fires
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records:
+      - {id: b01, day: -32, thread: b, from: ana}
+      - {id: b02, day: -45, thread: b, from: ana}
+      - {id: b03, day: -60, thread: b, from: ana}
+      - {id: b04, day: -75, thread: b, from: ana}
+      - {id: b05, day: -90, thread: b, from: ana}
+      - {id: b06, day: -100, thread: b, from: ana}
+      - {id: b07, day: -110, thread: b, from: ana}
+      - {id: b08, day: -115, thread: b, from: ana}
+      - {id: b09, day: -119, thread: b, from: ana}
+    expect: []
+
+  - name: metadata-only clients are measured the same way
+    client: {status: active, policy: metadata_only, contract_start: -500}
+    people: [{id: ana}]
+    records: *baseline_24
+    extra_records:
+      - {id: r1, day: -3, thread: r, from: ana, processed: false}
+    expect:
+      - {type: reduced_engagement, severity: medium, basis: metadata, dedupe_key: volume, evidence: []}
+
+delivery_complaint:
+  - name: one signal per subtype
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -3, thread: t1, from: dana, items: [{kind: complaint, subtype: delay, evidence: e1}]}
+      - {id: r2, day: -10, thread: t2, from: dana, items: [{kind: complaint, subtype: quality, evidence: e2}]}
+    expect:
+      - {type: delivery_complaint, severity: medium, basis: evidence, dedupe_key: delay, evidence: [e1]}
+      - {type: delivery_complaint, severity: medium, basis: evidence, dedupe_key: quality, evidence: [e2]}
+
+  - name: two complaints of one subtype are high
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -3, thread: t1, from: dana, items: [{kind: complaint, subtype: communication, evidence: e1}]}
+      - {id: r2, day: -20, thread: t2, from: dana, items: [{kind: complaint, subtype: communication, evidence: e2}]}
+    expect:
+      - {type: delivery_complaint, severity: high, basis: evidence, dedupe_key: communication, evidence: [e1, e2]}
+
+  - name: subtype other, old complaints and firm-authored text do not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -3, thread: t1, from: dana, items: [{kind: complaint, subtype: other, evidence: e1}]}
+      - {id: r2, day: -31, thread: t2, from: dana, items: [{kind: complaint, subtype: delay, evidence: e2}]}
+      - {id: r3, day: -4, thread: t3, from: firm, items: [{kind: complaint, subtype: delay, evidence: e3}]}
+    expect: []
+
+repeated_complaint:
+  - name: two complaints on two records within 60 days
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -5, thread: t1, from: dana, items: [{kind: complaint, subtype: delay, evidence: e1}]}
+      - {id: r2, day: -50, thread: t2, from: dana, items: [{kind: complaint, subtype: other, evidence: e2}]}
+    expect:
+      - {type: repeated_complaint, severity: high, basis: evidence, dedupe_key: repeated, evidence: [e1, e2]}
+
+  - name: two complaints in one message are not repeated
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -5, thread: t1, from: dana, items: [{kind: complaint, subtype: delay, evidence: e1}, {kind: complaint, subtype: quality, evidence: e2}]}
+    expect: []
+
+  - name: the second complaint is outside the window
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}]
+    records:
+      - {id: r1, day: -5, thread: t1, from: dana, items: [{kind: complaint, subtype: delay, evidence: e1}]}
+      - {id: r2, day: -61, thread: t2, from: dana, items: [{kind: complaint, subtype: delay, evidence: e2}]}
+    expect: []
+
+executive_escalation:
+  - name: a decision maker complains
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana}, {id: victor, decision_maker: true, first_seen: -300}]
+    records:
+      - {id: r1, day: -8, thread: t1, from: victor, items: [{kind: complaint, subtype: delay, evidence: e1}]}
+    expect:
+      - {type: executive_escalation, severity: high, basis: evidence, dedupe_key: escalation, evidence: [e1]}
+
+  - name: a newly seen decision maker joins a complaint thread
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana, first_seen: -300}, {id: cfo, decision_maker: true, first_seen: -12}]
+    records:
+      - {id: r1, day: -8, thread: t1, from: dana, items: [{kind: complaint, subtype: quality, evidence: e1}]}
+      - {id: r2, day: -6, thread: t1, from: cfo}
+    expect:
+      - {type: executive_escalation, severity: high, basis: evidence, dedupe_key: escalation, evidence: [e1]}
+
+  - name: a long-known decision maker on the thread is not an escalation
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: dana, first_seen: -300}, {id: cfo, decision_maker: true, first_seen: -200}]
+    records:
+      - {id: r1, day: -8, thread: t1, from: dana, items: [{kind: complaint, subtype: quality, evidence: e1}]}
+      - {id: r2, day: -6, thread: t1, from: cfo}
+    expect: []
+
+  - name: a decision maker's complaint older than 30 days
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: victor, decision_maker: true, first_seen: -300}]
+    records:
+      - {id: r1, day: -40, thread: t1, from: victor, items: [{kind: complaint, subtype: delay, evidence: e1}]}
+    expect: []
+
+champion_departure:
+  - name: the champion left and a message says so
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: maria, name: Maria Santos, champion: true, departed: -40, first_seen: -400}]
+    records:
+      - {id: r1, day: -41, thread: t1, from: maria, items: [{kind: stakeholder_change, change: left, person: Maria Santos, evidence: e1}]}
+    expect:
+      - {type: champion_departure, severity: high, basis: evidence, dedupe_key: "@person:maria", evidence: [e1]}
+
+  - name: without a quote the departure is metadata
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: maria, name: Maria Santos, champion: true, departed: -40, first_seen: -400}]
+    records: []
+    expect:
+      - {type: champion_departure, severity: high, basis: metadata, dedupe_key: "@person:maria", evidence: []}
+
+  - name: old departures and non-champions do not fire
+    client: {status: active, policy: full, contract_start: -500}
+    people:
+      - {id: maria, name: Maria Santos, champion: true, departed: -100, first_seen: -400}
+      - {id: tom, name: Tom Reyes, departed: -10, first_seen: -400}
+    records: []
+    expect: []
+
+champion_latency_drift:
+  - name: champion replies slow from hours to days
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: maria, champion: true, first_seen: -400}]
+    records:
+      - {id: f1, day: -150, hour: 9, thread: a, from: firm}
+      - {id: c1, day: -150, hour: 13, thread: a, from: maria}
+      - {id: f2, day: -120, hour: 9, thread: b, from: firm}
+      - {id: c2, day: -120, hour: 14, thread: b, from: maria}
+      - {id: f3, day: -100, hour: 9, thread: c, from: firm}
+      - {id: c3, day: -100, hour: 15, thread: c, from: maria}
+      - {id: f4, day: -40, hour: 9, thread: d, from: firm}
+      - {id: c4, day: -37, hour: 7, thread: d, from: maria}
+      - {id: f5, day: -20, hour: 9, thread: e, from: firm}
+      - {id: c5, day: -16, hour: 3, thread: e, from: maria}
+    expect:
+      - {type: champion_latency_drift, severity: medium, basis: metadata, dedupe_key: "@person:maria", evidence: []}
+    inputs: {recent_median_h: 80.0, base_median_h: 5.0, recent_n: 2, base_n: 3}
+
+  - name: one slow reply is not a drift
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: maria, champion: true, first_seen: -400}]
+    records:
+      - {id: f1, day: -150, hour: 9, thread: a, from: firm}
+      - {id: c1, day: -150, hour: 13, thread: a, from: maria}
+      - {id: f2, day: -120, hour: 9, thread: b, from: firm}
+      - {id: c2, day: -120, hour: 14, thread: b, from: maria}
+      - {id: f3, day: -100, hour: 9, thread: c, from: firm}
+      - {id: c3, day: -100, hour: 15, thread: c, from: maria}
+      - {id: f4, day: -40, hour: 9, thread: d, from: firm}
+      - {id: c4, day: -37, hour: 7, thread: d, from: maria}
+    expect: []
+
+  - name: slow but under a day is not a drift
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: maria, champion: true, first_seen: -400}]
+    records:
+      - {id: f1, day: -150, hour: 9, thread: a, from: firm}
+      - {id: c1, day: -150, hour: 11, thread: a, from: maria}
+      - {id: f2, day: -120, hour: 9, thread: b, from: firm}
+      - {id: c2, day: -120, hour: 11, thread: b, from: maria}
+      - {id: f3, day: -100, hour: 9, thread: c, from: firm}
+      - {id: c3, day: -100, hour: 11, thread: c, from: maria}
+      - {id: f4, day: -40, hour: 1, thread: d, from: firm}
+      - {id: c4, day: -40, hour: 19, thread: d, from: maria}
+      - {id: f5, day: -20, hour: 1, thread: e, from: firm}
+      - {id: c5, day: -20, hour: 23, thread: e, from: maria}
+    expect: []
+
+  - name: without three baseline replies there is nothing to compare
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: maria, champion: true, first_seen: -400}]
+    records:
+      - {id: f1, day: -150, hour: 9, thread: a, from: firm}
+      - {id: c1, day: -150, hour: 13, thread: a, from: maria}
+      - {id: f2, day: -120, hour: 9, thread: b, from: firm}
+      - {id: c2, day: -120, hour: 14, thread: b, from: maria}
+      - {id: f4, day: -40, hour: 9, thread: d, from: firm}
+      - {id: c4, day: -37, hour: 7, thread: d, from: maria}
+      - {id: f5, day: -20, hour: 9, thread: e, from: firm}
+      - {id: c5, day: -16, hour: 3, thread: e, from: maria}
+    expect: []
+
+new_senior_stakeholder:
+  - name: a new CMO is named in a message
+    client: {status: active, policy: full, contract_start: -600}
+    people: [{id: greg, name: Greg Lawson, decision_maker: true, first_seen: -42}]
+    records:
+      - {id: r0, day: -200, thread: t0, from: firm}
+      - {id: r1, day: -42, thread: t1, from: greg, items: [{kind: stakeholder_change, change: joined, person: Greg Lawson, evidence: e1}]}
+    expect:
+      - {type: new_senior_stakeholder, severity: medium, basis: evidence, dedupe_key: "@person:greg", evidence: [e1]}
+
+  - name: without a quote it is metadata
+    client: {status: active, policy: full, contract_start: -600}
+    people: [{id: greg, name: Greg Lawson, decision_maker: true, first_seen: -42}]
+    records:
+      - {id: r0, day: -200, thread: t0, from: firm}
+    expect:
+      - {type: new_senior_stakeholder, severity: medium, basis: metadata, dedupe_key: "@person:greg", evidence: []}
+
+  - name: a new decision maker during onboarding does not fire
+    client: {status: active, policy: full, contract_start: -60}
+    people:
+      - {id: greg, decision_maker: true, first_seen: -30}
+    records: []
+    expect: []
+
+  - name: someone first seen right after the visible history starts is not new
+    client: {status: active, policy: full, contract_start: -600}
+    people: [{id: greg, name: Greg Lawson, decision_maker: true, first_seen: -42}]
+    records:
+      - {id: r0, day: -50, thread: t0, from: firm}
+    expect: []
+
+  - name: an arrival exactly 60 days ago is outside the window
+    client: {status: active, policy: full, contract_start: -600}
+    people:
+      - {id: greg, decision_maker: true, first_seen: -60}
+      - {id: amy, decision_maker: false, first_seen: -10}
+    records: []
+    expect: []
+
+meeting_cancellations:
+  - name: two of five meetings cancelled or moved
+    client: {status: active, policy: full, contract_start: -500}
+    events:
+      - {day: -5, status: cancelled}
+      - {day: -12, status: rescheduled}
+      - {day: -19, status: held}
+      - {day: -26, status: held}
+      - {day: -33, status: held}
+    expect:
+      - {type: meeting_cancellations, severity: medium, basis: metadata, dedupe_key: meetings, evidence: []}
+    inputs: {affected: 2, total: 5}
+
+  - name: two of six is below 40 percent
+    client: {status: active, policy: full, contract_start: -500}
+    events:
+      - {day: -5, status: cancelled}
+      - {day: -12, status: rescheduled}
+      - {day: -19, status: held}
+      - {day: -26, status: held}
+      - {day: -33, status: held}
+      - {day: -40, status: held}
+    expect: []
+
+  - name: one cancellation is not a pattern and future meetings do not count
+    client: {status: active, policy: full, contract_start: -500}
+    events:
+      - {day: -5, status: cancelled}
+      - {day: 3, status: cancelled}
+      - {day: -61, status: cancelled}
+    expect: []
+
+late_commitment:
+  - name: recently missed and long missed firm commitments
+    client: {status: active, policy: full, contract_start: -500}
+    commitments:
+      - {id: c1, side: firm, due: -5, status: open, evidence: [e1]}
+      - {id: c2, side: firm, due: -20, status: late, evidence: [e2]}
+    expect:
+      - {type: late_commitment, severity: medium, basis: evidence, dedupe_key: "@commitment:c1", evidence: [e1]}
+      - {type: late_commitment, severity: high, basis: evidence, dedupe_key: "@commitment:c2", evidence: [e2]}
+
+  - name: exactly 14 days past due is high, 45 days is the last day counted
+    client: {status: active, policy: full, contract_start: -500}
+    commitments:
+      - {id: c1, side: firm, due: -14, status: open, evidence: [e1]}
+      - {id: c2, side: firm, due: -45, status: open, evidence: [e2]}
+    expect:
+      - {type: late_commitment, severity: high, basis: evidence, dedupe_key: "@commitment:c1", evidence: [e1]}
+      - {type: late_commitment, severity: high, basis: evidence, dedupe_key: "@commitment:c2", evidence: [e2]}
+
+  - name: due today, too old, client-side, done or cancelled do not fire
+    client: {status: active, policy: full, contract_start: -500}
+    commitments:
+      - {id: c1, side: firm, due: 0, status: open, evidence: [e1]}
+      - {id: c2, side: firm, due: -46, status: open, evidence: [e2]}
+      - {id: c3, side: client, due: -5, status: open, evidence: [e3]}
+      - {id: c4, side: firm, due: -5, status: done, evidence: [e4]}
+      - {id: c5, side: firm, due: -5, status: cancelled, evidence: [e5]}
+    expect: []
+
+goal_result_mismatch:
+  - name: twelve against a goal of forty
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sofia}]
+    records:
+      - {id: g, day: -90, thread: t1, from: sofia, items: [{kind: goal, text: "The client wants 40 sales-qualified opportunities per quarter.", evidence: e1}]}
+      - {id: r, day: -6, thread: t2, from: sofia, items: [{kind: result_reported, text: "The program produced 12 sales-qualified opportunities this quarter.", evidence: e2}]}
+    expect:
+      - {type: goal_result_mismatch, severity: medium, basis: evidence, dedupe_key: "@record:g", evidence: [e1, e2]}
+
+  - name: exactly half is not a mismatch
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sofia}]
+    records:
+      - {id: g, day: -90, thread: t1, from: sofia, items: [{kind: goal, text: "The client wants 40 opportunities per quarter.", evidence: e1}]}
+      - {id: r, day: -6, thread: t2, from: sofia, items: [{kind: result_reported, text: "The program produced 20 opportunities.", evidence: e2}]}
+    expect: []
+
+  - name: lower-is-better goals, results before the goal and goals without numbers are skipped
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sofia}]
+    records:
+      - {id: g1, day: -120, thread: t1, from: sofia, items: [{kind: goal, text: "Keep the cost per acquisition under $450.", evidence: e1}]}
+      - {id: r1, day: -100, thread: t2, from: sofia, items: [{kind: result_reported, text: "Cost per acquisition was $90 in August.", evidence: e2}]}
+      - {id: r2, day: -60, thread: t3, from: sofia, items: [{kind: result_reported, text: "We booked 3 demos.", evidence: e3}]}
+      - {id: g2, day: -50, thread: t4, from: sofia, items: [{kind: goal, text: "Grow the pipeline significantly.", evidence: e4}]}
+      - {id: r3, day: -10, thread: t5, from: sofia, items: [{kind: result_reported, text: "We booked 2 demos.", evidence: e5}]}
+    expect: []
+
+  - name: a goal more than 180 days before the result is not paired
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sofia}]
+    records:
+      - {id: g, day: -200, thread: t1, from: sofia, items: [{kind: goal, text: "The client wants 40 opportunities per quarter.", evidence: e1}]}
+      - {id: r, day: -6, thread: t2, from: sofia, items: [{kind: result_reported, text: "The program produced 12 opportunities.", evidence: e2}]}
+    expect: []
+
+first_90_days_no_result:
+  - name: ninety-one days in without a result
+    client: {status: active, policy: full, contract_start: -91}
+    records: []
+    expect:
+      - {type: first_90_days_no_result, severity: medium, basis: metadata, dedupe_key: onboarding, evidence: []}
+
+  - name: a reported result, too early or too late do not fire
+    client: {status: active, policy: full, contract_start: -91}
+    people: [{id: lee}]
+    records:
+      - {id: r, day: -10, thread: t1, from: lee, items: [{kind: result_reported, text: "Demo requests are up 18%.", evidence: e1}]}
+    expect: []
+
+  - name: eighty-nine days is still onboarding
+    client: {status: active, policy: full, contract_start: -89}
+    records: []
+    expect: []
+
+  - name: after 150 days the onboarding rule no longer applies
+    client: {status: active, policy: full, contract_start: -151}
+    records: []
+    expect: []
+
+in_house_risk:
+  - name: the client mentions hiring in-house
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: raj}]
+    records:
+      - {id: r1, day: -30, thread: t1, from: raj, items: [{kind: in_house_or_competitor_mention, evidence: e1}]}
+    expect:
+      - {type: in_house_risk, severity: medium, basis: evidence, dedupe_key: in_house, evidence: [e1]}
+
+  - name: a mention older than 90 days does not fire
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: raj}]
+    records:
+      - {id: r1, day: -91, thread: t1, from: raj, items: [{kind: in_house_or_competitor_mention, evidence: e1}]}
+    expect: []
+
+renewal_window:
+  - name: renewal in 60 days with 30 days notice
+    client: {status: active, policy: full, contract_start: -500, renewal_date: 60, notice_period_days: 30}
+    expect:
+      - {type: renewal_window, severity: medium, basis: metadata, dedupe_key: "@date:60", evidence: []}
+    inputs: {days_to_notice: 30}
+
+  - name: a notice deadline in 20 days opens the window before the 90 days
+    client: {status: active, policy: full, contract_start: -500, renewal_date: 120, notice_period_days: 100}
+    expect:
+      - {type: renewal_window, severity: medium, basis: metadata, dedupe_key: "@date:120", evidence: []}
+
+  - name: a notice deadline already passed is high
+    client: {status: active, policy: full, contract_start: -500, renewal_date: 46, notice_period_days: 60}
+    expect:
+      - {type: renewal_window, severity: high, basis: metadata, dedupe_key: "@date:46", evidence: []}
+    inputs: {days_to_notice: -14}
+
+  - name: far renewals and unknown dates do not fire
+    client: {status: active, policy: full, contract_start: -500, renewal_date: 200, notice_period_days: 60}
+    expect: []
+
+  - name: a churned client is evaluated at its churn date
+    client: {status: churned, policy: full, contract_start: -700, renewal_date: 45, notice_period_days: 60}
+    expect:
+      - {type: renewal_window, severity: high, basis: metadata, dedupe_key: "@date:45", evidence: []}
+
+  - name: prospects are never evaluated
+    client: {status: prospect, policy: full, contract_start: null, renewal_date: 30, notice_period_days: 30}
+    expect: []
+
+# P2b rules (the design notes), written by the lead from the catalog (T20a).
+
+client_initiation_drop:
+  - name: one client-started thread against four per 30 days
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}]
+    records: &initiated_12
+      - {id: i01, day: -32, thread: i01, from: pia}
+      - {id: i02, day: -39, thread: i02, from: pia}
+      - {id: i03, day: -46, thread: i03, from: pia}
+      - {id: i04, day: -53, thread: i04, from: pia}
+      - {id: i05, day: -60, thread: i05, from: pia}
+      - {id: i06, day: -67, thread: i06, from: pia}
+      - {id: i07, day: -74, thread: i07, from: pia}
+      - {id: i08, day: -81, thread: i08, from: pia}
+      - {id: i09, day: -88, thread: i09, from: pia}
+      - {id: i10, day: -95, thread: i10, from: pia}
+      - {id: i11, day: -102, thread: i11, from: pia}
+      - {id: i12, day: -109, thread: i12, from: pia}
+    extra_records:
+      - {id: n1, day: -5, thread: n1, from: pia}
+    expect:
+      - {type: client_initiation_drop, severity: medium, basis: metadata, dedupe_key: initiation, evidence: []}
+    inputs: {initiated_30: 1, baseline_per_30: 4.0}
+
+  - name: exactly half of the baseline is still medium
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}]
+    records: *initiated_12
+    extra_records:
+      - {id: n1, day: -5, thread: n1, from: pia}
+      - {id: n2, day: -15, thread: n2, from: pia}
+    expect:
+      - {type: client_initiation_drop, severity: medium, basis: metadata, dedupe_key: initiation, evidence: []}
+
+  - name: threads the firm started do not count as client initiative
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}]
+    records: *initiated_12
+    extra_records:
+      - {id: f1, day: -10, hour: 9, thread: f1, from: firm}
+      - {id: c1, day: -10, hour: 15, thread: f1, from: pia}
+      - {id: f2, day: -20, hour: 9, thread: f2, from: firm}
+      - {id: c2, day: -20, hour: 15, thread: f2, from: pia}
+    expect:
+      - {type: client_initiation_drop, severity: medium, basis: metadata, dedupe_key: initiation, evidence: []}
+    inputs: {initiated_30: 0, baseline_per_30: 4.0}
+
+  - name: replies in an old thread are not new threads
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}]
+    records: *initiated_12
+    extra_records:
+      - {id: n1, day: -5, thread: n1, from: pia}
+      - {id: n2, day: -12, thread: n2, from: pia}
+      - {id: n3, day: -18, thread: n3, from: pia}
+      - {id: o1, day: -3, thread: i01, from: pia}
+      - {id: o2, day: -4, thread: i02, from: pia}
+    expect: []
+
+  - name: four against 6.67 per 30 days is a watch-level drop
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}]
+    records: &initiated_20
+      - {id: j01, day: -32, thread: j01, from: pia}
+      - {id: j02, day: -36, thread: j02, from: pia}
+      - {id: j03, day: -41, thread: j03, from: pia}
+      - {id: j04, day: -45, thread: j04, from: pia}
+      - {id: j05, day: -50, thread: j05, from: pia}
+      - {id: j06, day: -54, thread: j06, from: pia}
+      - {id: j07, day: -59, thread: j07, from: pia}
+      - {id: j08, day: -63, thread: j08, from: pia}
+      - {id: j09, day: -68, thread: j09, from: pia}
+      - {id: j10, day: -72, thread: j10, from: pia}
+      - {id: j11, day: -77, thread: j11, from: pia}
+      - {id: j12, day: -81, thread: j12, from: pia}
+      - {id: j13, day: -86, thread: j13, from: pia}
+      - {id: j14, day: -90, thread: j14, from: pia}
+      - {id: j15, day: -95, thread: j15, from: pia}
+      - {id: j16, day: -99, thread: j16, from: pia}
+      - {id: j17, day: -104, thread: j17, from: pia}
+      - {id: j18, day: -108, thread: j18, from: pia}
+      - {id: j19, day: -113, thread: j19, from: pia}
+      - {id: j20, day: -117, thread: j20, from: pia}
+    extra_records:
+      - {id: n1, day: -9, thread: n1, from: pia}
+      - {id: n2, day: -15, thread: n2, from: pia}
+      - {id: n3, day: -21, thread: n3, from: pia}
+      - {id: n4, day: -27, thread: n4, from: pia}
+    expect:
+      - {type: client_initiation_drop, severity: low, basis: metadata, dedupe_key: initiation, evidence: []}
+    inputs: {initiated_30: 4, baseline_per_30: 6.67}
+
+  - name: three against 6.67 per 30 days is medium
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}]
+    records: *initiated_20
+    extra_records:
+      - {id: n1, day: -9, thread: n1, from: pia}
+      - {id: n2, day: -15, thread: n2, from: pia}
+      - {id: n3, day: -21, thread: n3, from: pia}
+    expect:
+      - {type: client_initiation_drop, severity: medium, basis: metadata, dedupe_key: initiation, evidence: []}
+
+  - name: five against 6.67 per 30 days is normal
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}]
+    records: *initiated_20
+    extra_records:
+      - {id: n1, day: -7, thread: n1, from: pia}
+      - {id: n2, day: -12, thread: n2, from: pia}
+      - {id: n3, day: -17, thread: n3, from: pia}
+      - {id: n4, day: -22, thread: n4, from: pia}
+      - {id: n5, day: -27, thread: n5, from: pia}
+    expect: []
+
+  - name: a baseline under two threads per 30 days never fires
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}]
+    records:
+      - {id: i1, day: -35, thread: i1, from: pia}
+      - {id: i2, day: -55, thread: i2, from: pia}
+      - {id: i3, day: -75, thread: i3, from: pia}
+      - {id: i4, day: -95, thread: i4, from: pia}
+      - {id: i5, day: -115, thread: i5, from: pia}
+    expect: []
+
+client_reply_latency_drift:
+  - name: client replies slow from four hours to two days
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: &latency_base
+      - {id: fb1, day: -70, hour: 9, thread: tb1, from: firm}
+      - {id: cb1, day: -70, hour: 13, thread: tb1, from: pia}
+      - {id: fb2, day: -90, hour: 9, thread: tb2, from: firm}
+      - {id: cb2, day: -90, hour: 13, thread: tb2, from: tom}
+      - {id: fb3, day: -110, hour: 9, thread: tb3, from: firm}
+      - {id: cb3, day: -110, hour: 13, thread: tb3, from: pia}
+      - {id: fb4, day: -130, hour: 9, thread: tb4, from: firm}
+      - {id: cb4, day: -130, hour: 13, thread: tb4, from: tom}
+      - {id: fb5, day: -150, hour: 9, thread: tb5, from: firm}
+      - {id: cb5, day: -150, hour: 13, thread: tb5, from: pia}
+    extra_records:
+      - {id: fr1, day: -50, hour: 9, thread: tr1, from: firm}
+      - {id: cr1, day: -48, hour: 9, thread: tr1, from: pia}
+      - {id: fr2, day: -30, hour: 9, thread: tr2, from: firm}
+      - {id: cr2, day: -28, hour: 9, thread: tr2, from: pia}
+      - {id: fr3, day: -15, hour: 9, thread: tr3, from: firm}
+      - {id: cr3, day: -13, hour: 9, thread: tr3, from: pia}
+    expect:
+      - {type: client_reply_latency_drift, severity: medium, basis: metadata, dedupe_key: latency, evidence: []}
+    inputs: {recent_median_h: 48.0, base_median_h: 4.0, recent_n: 3, base_n: 5}
+
+  - name: sixteen-hour replies against four are a watch-level drift
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_base
+    extra_records:
+      - {id: fr1, day: -50, hour: 8, thread: tr1, from: firm}
+      - {id: cr1, day: -49, hour: 0, thread: tr1, from: tom}
+      - {id: fr2, day: -30, hour: 8, thread: tr2, from: firm}
+      - {id: cr2, day: -29, hour: 0, thread: tr2, from: tom}
+      - {id: fr3, day: -15, hour: 8, thread: tr3, from: firm}
+      - {id: cr3, day: -14, hour: 0, thread: tr3, from: tom}
+    expect:
+      - {type: client_reply_latency_drift, severity: low, basis: metadata, dedupe_key: latency, evidence: []}
+    inputs: {recent_median_h: 16.0, base_median_h: 4.0, recent_n: 3, base_n: 5}
+
+  - name: two slow replies are not enough
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_base
+    extra_records:
+      - {id: fr1, day: -50, hour: 9, thread: tr1, from: firm}
+      - {id: cr1, day: -48, hour: 9, thread: tr1, from: pia}
+      - {id: fr2, day: -30, hour: 9, thread: tr2, from: firm}
+      - {id: cr2, day: -28, hour: 9, thread: tr2, from: pia}
+    expect: []
+
+  - name: ten-hour replies stay under the watch threshold
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_base
+    extra_records:
+      - {id: fr1, day: -50, hour: 8, thread: tr1, from: firm}
+      - {id: cr1, day: -50, hour: 18, thread: tr1, from: pia}
+      - {id: fr2, day: -30, hour: 8, thread: tr2, from: firm}
+      - {id: cr2, day: -30, hour: 18, thread: tr2, from: pia}
+      - {id: fr3, day: -15, hour: 8, thread: tr3, from: firm}
+      - {id: cr3, day: -15, hour: 18, thread: tr3, from: pia}
+    expect: []
+
+  - name: a client follow-up is not a reply
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records: *latency_base
+    extra_records:
+      - {id: fr1, day: -50, hour: 9, thread: tr1, from: firm}
+      - {id: cr1, day: -48, hour: 9, thread: tr1, from: pia}
+      - {id: fr2, day: -30, hour: 9, thread: tr2, from: firm}
+      - {id: cr2, day: -28, hour: 9, thread: tr2, from: pia}
+      - {id: x1, day: -12, hour: 9, thread: tr2, from: pia}
+    expect: []
+
+  - name: four earlier replies are too few for a baseline
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: pia}, {id: tom}]
+    records:
+      - {id: fb1, day: -70, hour: 9, thread: tb1, from: firm}
+      - {id: cb1, day: -70, hour: 13, thread: tb1, from: pia}
+      - {id: fb2, day: -90, hour: 9, thread: tb2, from: firm}
+      - {id: cb2, day: -90, hour: 13, thread: tb2, from: pia}
+      - {id: fb3, day: -110, hour: 9, thread: tb3, from: firm}
+      - {id: cb3, day: -110, hour: 13, thread: tb3, from: pia}
+      - {id: fb4, day: -130, hour: 9, thread: tb4, from: firm}
+      - {id: cb4, day: -130, hour: 13, thread: tb4, from: pia}
+      - {id: fr1, day: -50, hour: 9, thread: tr1, from: firm}
+      - {id: cr1, day: -48, hour: 9, thread: tr1, from: pia}
+      - {id: fr2, day: -30, hour: 9, thread: tr2, from: firm}
+      - {id: cr2, day: -28, hour: 9, thread: tr2, from: pia}
+      - {id: fr3, day: -15, hour: 9, thread: tr3, from: firm}
+      - {id: cr3, day: -13, hour: 9, thread: tr3, from: pia}
+    expect: []
+
+participant_narrowing:
+  - name: one client writer left of four
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: p1}, {id: p2}, {id: p3}, {id: p4}]
+    records: &authors_4
+      - {id: w0a1, day: -73, thread: w0, from: p1}
+      - {id: w0a2, day: -76, thread: w0, from: p2}
+      - {id: w0a3, day: -79, thread: w0, from: p3}
+      - {id: w0a4, day: -82, thread: w0, from: p4}
+      - {id: w1a1, day: -133, thread: w1, from: p1}
+      - {id: w1a2, day: -136, thread: w1, from: p2}
+      - {id: w1a3, day: -139, thread: w1, from: p3}
+      - {id: w1a4, day: -142, thread: w1, from: p4}
+      - {id: w2a1, day: -193, thread: w2, from: p1}
+      - {id: w2a2, day: -196, thread: w2, from: p2}
+      - {id: w2a3, day: -199, thread: w2, from: p3}
+      - {id: w2a4, day: -202, thread: w2, from: p4}
+    extra_records:
+      - {id: r1, day: -10, thread: r, from: p1}
+      - {id: r2, day: -20, thread: r, from: p1}
+    expect:
+      - {type: participant_narrowing, severity: medium, basis: metadata, dedupe_key: participants, evidence: []}
+    inputs: {authors_60: 1, baseline_authors_per_60: 4.0}
+
+  - name: two writers of four is still medium
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: p1}, {id: p2}, {id: p3}, {id: p4}]
+    records: *authors_4
+    extra_records:
+      - {id: r1, day: -10, thread: r, from: p1}
+      - {id: r2, day: -20, thread: r, from: p2}
+    expect:
+      - {type: participant_narrowing, severity: medium, basis: metadata, dedupe_key: participants, evidence: []}
+
+  - name: three writers of four is normal
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: p1}, {id: p2}, {id: p3}, {id: p4}]
+    records: *authors_4
+    extra_records:
+      - {id: r1, day: -10, thread: r, from: p1}
+      - {id: r2, day: -20, thread: r, from: p2}
+      - {id: r3, day: -30, thread: r, from: p3}
+    expect: []
+
+  - name: three writers of five is a watch-level narrowing
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: p1}, {id: p2}, {id: p3}, {id: p4}, {id: p5}]
+    records:
+      - {id: w0a1, day: -73, thread: w0, from: p1}
+      - {id: w0a2, day: -76, thread: w0, from: p2}
+      - {id: w0a3, day: -79, thread: w0, from: p3}
+      - {id: w0a4, day: -82, thread: w0, from: p4}
+      - {id: w0a5, day: -85, thread: w0, from: p5}
+      - {id: w1a1, day: -133, thread: w1, from: p1}
+      - {id: w1a2, day: -136, thread: w1, from: p2}
+      - {id: w1a3, day: -139, thread: w1, from: p3}
+      - {id: w1a4, day: -142, thread: w1, from: p4}
+      - {id: w1a5, day: -145, thread: w1, from: p5}
+      - {id: w2a1, day: -193, thread: w2, from: p1}
+      - {id: w2a2, day: -196, thread: w2, from: p2}
+      - {id: w2a3, day: -199, thread: w2, from: p3}
+      - {id: w2a4, day: -202, thread: w2, from: p4}
+      - {id: w2a5, day: -205, thread: w2, from: p5}
+    extra_records:
+      - {id: r1, day: -10, thread: r, from: p1}
+      - {id: r2, day: -20, thread: r, from: p2}
+      - {id: r3, day: -30, thread: r, from: p3}
+    expect:
+      - {type: participant_narrowing, severity: low, basis: metadata, dedupe_key: participants, evidence: []}
+    inputs: {authors_60: 3, baseline_authors_per_60: 5.0}
+
+  - name: a baseline under three writers never fires
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: p1}, {id: p2}, {id: p3}]
+    records:
+      - {id: w0a1, day: -70, thread: w0, from: p1}
+      - {id: w0a2, day: -75, thread: w0, from: p2}
+      - {id: w0a3, day: -80, thread: w0, from: p3}
+      - {id: w1a1, day: -130, thread: w1, from: p1}
+      - {id: w1a2, day: -135, thread: w1, from: p2}
+      - {id: w1a3, day: -140, thread: w1, from: p3}
+      - {id: w2a1, day: -190, thread: w2, from: p1}
+      - {id: w2a2, day: -195, thread: w2, from: p2}
+    expect: []
+
+decision_maker_silence:
+  - name: a decision maker who wrote regularly goes quiet
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: vic, decision_maker: true}, {id: ana}]
+    records:
+      - {id: v1, day: -40, thread: a, from: vic}
+      - {id: v2, day: -70, thread: b, from: vic}
+      - {id: v3, day: -100, thread: c, from: vic}
+      - {id: n1, day: -5, thread: d, from: ana}
+    expect:
+      - {type: decision_maker_silence, severity: medium, basis: metadata, dedupe_key: "@person:vic", evidence: []}
+    inputs: {messages_31_180: 3}
+
+  - name: a recent message means no silence
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: vic, decision_maker: true}]
+    records:
+      - {id: v1, day: -40, thread: a, from: vic}
+      - {id: v2, day: -70, thread: b, from: vic}
+      - {id: v3, day: -100, thread: c, from: vic}
+      - {id: v4, day: -20, thread: d, from: vic}
+    expect: []
+
+  - name: two earlier messages are too few
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: vic, decision_maker: true}]
+    records:
+      - {id: v1, day: -40, thread: a, from: vic}
+      - {id: v2, day: -70, thread: b, from: vic}
+    expect: []
+
+  - name: a message exactly 30 days back counts as earlier
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: vic, decision_maker: true}]
+    records:
+      - {id: v1, day: -30, hour: 0, thread: a, from: vic}
+      - {id: v2, day: -60, thread: b, from: vic}
+      - {id: v3, day: -90, thread: c, from: vic}
+    expect:
+      - {type: decision_maker_silence, severity: medium, basis: metadata, dedupe_key: "@person:vic", evidence: []}
+
+  - name: a decision maker who left is not silent
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: vic, decision_maker: true, departed: -35}]
+    records:
+      - {id: v1, day: -40, thread: a, from: vic}
+      - {id: v2, day: -70, thread: b, from: vic}
+      - {id: v3, day: -100, thread: c, from: vic}
+    expect: []
+
+  - name: a departure after the reference time is not known yet
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: vic, decision_maker: true, departed: 5}]
+    records:
+      - {id: v1, day: -40, thread: a, from: vic}
+      - {id: v2, day: -70, thread: b, from: vic}
+      - {id: v3, day: -100, thread: c, from: vic}
+    expect:
+      - {type: decision_maker_silence, severity: medium, basis: metadata, dedupe_key: "@person:vic", evidence: []}
+
+  - name: people who are not decision makers are not tracked
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: vic}]
+    records:
+      - {id: v1, day: -40, thread: a, from: vic}
+      - {id: v2, day: -70, thread: b, from: vic}
+      - {id: v3, day: -100, thread: c, from: vic}
+    expect: []
+
+meeting_attendance_drop:
+  - name: meetings shrink from six people to three
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    events:
+      - {day: -100, status: held, attendees: 6}
+      - {day: -150, status: held, attendees: 6}
+      - {day: -200, status: held, attendees: 6}
+      - {day: -10, status: held, attendees: 3}
+      - {day: -40, status: held, attendees: 3}
+    expect:
+      - {type: meeting_attendance_drop, severity: low, basis: metadata, dedupe_key: attendance, evidence: []}
+    inputs: {mean_90: 3.0, base_mean: 6.0, recent_n: 2, base_n: 3}
+
+  - name: five of six is normal
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    events:
+      - {day: -100, status: held, attendees: 6}
+      - {day: -150, status: held, attendees: 6}
+      - {day: -200, status: held, attendees: 6}
+      - {day: -10, status: held, attendees: 5}
+      - {day: -40, status: held, attendees: 5}
+    expect: []
+
+  - name: exactly 0.7 of the baseline fires
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    events:
+      - {day: -100, status: held, attendees: 10}
+      - {day: -150, status: held, attendees: 10}
+      - {day: -200, status: held, attendees: 10}
+      - {day: -10, status: held, attendees: 7}
+      - {day: -40, status: held, attendees: 7}
+    expect:
+      - {type: meeting_attendance_drop, severity: low, basis: metadata, dedupe_key: attendance, evidence: []}
+
+  - name: one recent meeting is not enough
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    events:
+      - {day: -100, status: held, attendees: 6}
+      - {day: -150, status: held, attendees: 6}
+      - {day: -200, status: held, attendees: 6}
+      - {day: -10, status: held, attendees: 2}
+    expect: []
+
+  - name: cancelled meetings do not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    events:
+      - {day: -100, status: held, attendees: 6}
+      - {day: -150, status: held, attendees: 6}
+      - {day: -200, status: held, attendees: 6}
+      - {day: -10, status: held, attendees: 6}
+      - {day: -40, status: held, attendees: 6}
+      - {day: -20, status: cancelled, attendees: 1}
+    expect: []
+
+  - name: two earlier meetings are too few for a baseline
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    events:
+      - {day: -100, status: held, attendees: 6}
+      - {day: -150, status: held, attendees: 6}
+      - {day: -10, status: held, attendees: 2}
+      - {day: -40, status: held, attendees: 2}
+    expect: []
+
+scope_cut_talk:
+  - name: one remark about cutting scope is a watch
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sam}]
+    records:
+      - {id: r1, day: -10, thread: t1, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e1}]}
+    expect:
+      - {type: scope_cut_talk, severity: low, basis: evidence, dedupe_key: scope_cut, evidence: [e1]}
+
+  - name: two remarks on two emails are medium
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sam}]
+    records:
+      - {id: r1, day: -10, thread: t1, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e1}]}
+      - {id: r2, day: -40, thread: t2, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e2}]}
+    expect:
+      - {type: scope_cut_talk, severity: medium, basis: evidence, dedupe_key: scope_cut, evidence: [e1, e2]}
+
+  - name: two remarks in one email stay a watch
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sam}]
+    records:
+      - {id: r1, day: -10, thread: t1, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e1}, {kind: renewal_or_budget_talk, budget_direction: cut, evidence: e2}]}
+    expect:
+      - {type: scope_cut_talk, severity: low, basis: evidence, dedupe_key: scope_cut, evidence: [e1, e2]}
+
+  - name: the firm talking about cuts does not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sam}]
+    records:
+      - {id: r1, day: -10, thread: t1, from: firm, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e1}]}
+    expect: []
+
+  - name: a budget increase is not a cut
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sam}]
+    records:
+      - {id: r1, day: -10, thread: t1, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: grow, evidence: e1}]}
+    expect: []
+
+  - name: remarks older than 60 days do not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sam}]
+    records:
+      - {id: r1, day: -61, thread: t1, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e1}]}
+    expect: []
+
+  - name: six remarks cite the newest five
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: sam}]
+    records:
+      - {id: r1, day: -5, thread: t1, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e1}]}
+      - {id: r2, day: -10, thread: t2, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e2}]}
+      - {id: r3, day: -15, thread: t3, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e3}]}
+      - {id: r4, day: -20, thread: t4, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e4}]}
+      - {id: r5, day: -25, thread: t5, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e5}]}
+      - {id: r6, day: -30, thread: t6, from: sam, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e6}]}
+    expect:
+      - {type: scope_cut_talk, severity: medium, basis: evidence, dedupe_key: scope_cut, evidence: [e1, e2, e3, e4, e5]}
+
+expansion_need:
+  - name: a recurring need matching a firm service
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    needs:
+      - {id: n1, service: attribution, status: open, last_seen: -10, mentions: 4, evidence: [e1, e2]}
+    expect:
+      - {type: expansion_need, severity: medium, basis: evidence, dedupe_key: "@need:n1", evidence: [e1, e2]}
+
+  - name: a need no service matches is not an expansion
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    needs:
+      - {id: n1, service: null, status: open, last_seen: -10, mentions: 4, evidence: [e1]}
+    expect: []
+
+  - name: dismissed and addressed needs do not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    needs:
+      - {id: n1, service: attribution, status: dismissed, last_seen: -10, mentions: 4, evidence: [e1]}
+      - {id: n2, service: attribution, status: addressed, last_seen: -10, mentions: 4, evidence: [e2]}
+    expect: []
+
+  - name: a need seen after the reference time is not known yet
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    needs:
+      - {id: n1, service: attribution, status: open, last_seen: 5, mentions: 4, evidence: [e1]}
+    expect: []
+
+  - name: a need last seen more than 90 days ago is stale
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    needs:
+      - {id: n1, service: attribution, status: open, last_seen: -91, mentions: 4, evidence: [e1]}
+    expect: []
+
+  - name: each matched need is its own signal
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: ana}]
+    records: []
+    needs:
+      - {id: n1, service: attribution, status: open, last_seen: -10, mentions: 4, evidence: [e1]}
+      - {id: n2, service: web_cro, status: open, last_seen: -20, mentions: 4, evidence: [e2]}
+    expect:
+      - {type: expansion_need, severity: medium, basis: evidence, dedupe_key: "@need:n1", evidence: [e1]}
+      - {type: expansion_need, severity: medium, basis: evidence, dedupe_key: "@need:n2", evidence: [e2]}
+
+client_initiative:
+  - name: the client announces a new market
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: lee}]
+    records:
+      - {id: r1, day: -20, thread: t1, from: lee, items: [{kind: initiative, initiative_type: market, evidence: e1}]}
+    expect:
+      - {type: client_initiative, severity: medium, basis: evidence, dedupe_key: initiative, evidence: [e1]}
+
+  - name: a firm-side initiative does not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: lee}]
+    records:
+      - {id: r1, day: -20, thread: t1, from: firm, items: [{kind: initiative, initiative_type: market, evidence: e1}]}
+    expect: []
+
+  - name: initiatives older than 90 days do not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: lee}]
+    records:
+      - {id: r1, day: -91, thread: t1, from: lee, items: [{kind: initiative, initiative_type: market, evidence: e1}]}
+    expect: []
+
+  - name: six initiatives cite the newest five
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: lee}]
+    records:
+      - {id: r1, day: -5, thread: t1, from: lee, items: [{kind: initiative, initiative_type: market, evidence: e1}]}
+      - {id: r2, day: -10, thread: t2, from: lee, items: [{kind: initiative, initiative_type: market, evidence: e2}]}
+      - {id: r3, day: -15, thread: t3, from: lee, items: [{kind: initiative, initiative_type: market, evidence: e3}]}
+      - {id: r4, day: -20, thread: t4, from: lee, items: [{kind: initiative, initiative_type: market, evidence: e4}]}
+      - {id: r5, day: -25, thread: t5, from: lee, items: [{kind: initiative, initiative_type: market, evidence: e5}]}
+      - {id: r6, day: -30, thread: t6, from: lee, items: [{kind: initiative, initiative_type: market, evidence: e6}]}
+    expect:
+      - {type: client_initiative, severity: medium, basis: evidence, dedupe_key: initiative, evidence: [e1, e2, e3, e4, e5]}
+
+budget_growth:
+  - name: the client has a bigger budget
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: lee}]
+    records:
+      - {id: r1, day: -30, thread: t1, from: lee, items: [{kind: renewal_or_budget_talk, budget_direction: grow, evidence: e1}]}
+    expect:
+      - {type: budget_growth, severity: medium, basis: evidence, dedupe_key: budget_growth, evidence: [e1]}
+
+  - name: a budget cut is not growth
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: lee}]
+    records:
+      - {id: r1, day: -30, thread: t1, from: lee, items: [{kind: renewal_or_budget_talk, budget_direction: cut, evidence: e1}]}
+    expect: []
+
+  - name: the firm talking about growth does not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: lee}]
+    records:
+      - {id: r1, day: -30, thread: t1, from: firm, items: [{kind: renewal_or_budget_talk, budget_direction: grow, evidence: e1}]}
+    expect: []
+
+  - name: growth talk older than 90 days does not count
+    client: {status: active, policy: full, contract_start: -500}
+    people: [{id: lee}]
+    records:
+      - {id: r1, day: -91, thread: t1, from: lee, items: [{kind: renewal_or_budget_talk, budget_direction: grow, evidence: e1}]}
+    expect: []

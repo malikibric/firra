@@ -1,0 +1,51 @@
+{
+  "generated_at": "2026-10-05T09:37:20.470022Z",
+  "client": {
+    "id": "3eaf6d39-d30c-45a3-8ddb-1f762624b71e",
+    "name": "Synthetic Acme",
+    "status": "active",
+    "policy": "full",
+    "mrr": null,
+    "currency": null,
+    "renewal_date": null,
+    "notice_period_days": null,
+    "assessment": {
+      "risk_state": "high",
+      "state_since": "2026-10-05",
+      "expansion_state": "none",
+      "play": "monitor",
+      "as_of": "2026-10-05",
+      "previous_risk_state": "watch",
+      "strength": "moderate",
+      "caveats": [
+        {
+          "code": "participant_coverage",
+          "detail": "Few participants."
+        }
+      ],
+      "drivers": []
+    },
+    "state_history": [
+      {
+        "as_of": "2026-10-05",
+        "from": "watch",
+        "to": "high"
+      }
+    ],
+    "stakeholders": [],
+    "unknowns": [],
+    "commitments": [],
+    "goals": [],
+    "needs": [],
+    "outcomes": [
+      {
+        "event": "renewed",
+        "occurred_at": "2026-10-05",
+        "notice_at": null,
+        "first_known_at": null,
+        "amount_change": null,
+        "currency": null
+      }
+    ]
+  }
+}

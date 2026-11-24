@@ -1,0 +1,740 @@
+# Routine-engine oracle (T43c): executable form of docs/plans/e-routines-engine.md.
+# Written from the spec alone, independently of T43b's implementation; the implementer must not edit
+# expectations. A disagreement is raised with the lead — either the spec or the code is wrong.
+#
+# Format
+#   Every group below is one pure function from the spec; each case has an `id`, a one-line `why`,
+#   an `input` and its `expect`.
+#   Labels `c1`, `e1`, … are mapped to deterministic UUIDs by the runner (uuid5); `evidence` is
+#   compared as a set. `as_of`, `surfaced_on` and `today` are ISO dates. `risk_rank` follows
+#   firra.assessment.config (stable 0, watch 1, elevated 2, high 3).
+#   classify input:  trigger, risk, policy (default full), days_to_notice (default null), and the
+#                    trigger field: risk_to | expansion_to | severity | owner_side.
+#   merge input:     client (default c1), context {risk, policy, days_to_notice}, candidates
+#                    (kind, trigger, as_of, and the trigger field, evidence).
+#   is_suppressed:   decision {kind, reason_code, risk_rank, evidence}, priors (kind, reason_code,
+#                    verdict, surfaced_on, risk_rank, evidence), today. `expect` is true/false.
+#   apply_budget:    important_used, decisions (client, kind, reason_code, importance, risk_rank,
+#                    days_to_notice, as_of, evidence). `expect` lists client, reason_code,
+#                    importance and demoted_reason in output order.
+#   plan:            important_used, today, clients (client, context, candidates, priors).
+#                    `expect` is counts plus the decisions in output order.
+#   None in `expect` means the function returned None/no decision.
+
+# ---------------------------------------------------------------------------------------------------
+# classify: one case per rule-table row, then the boundary values the brief names.
+# ---------------------------------------------------------------------------------------------------
+classify:
+  - id: row01-risk-up-elevated
+    why: risk_up into elevated is important
+    input: {trigger: risk_up, risk: stable, risk_to: elevated}
+    expect: {importance: important, reason_code: risk_rose_elevated}
+
+  - id: row01-risk-up-high
+    why: risk_up into high is the same row as elevated
+    input: {trigger: risk_up, risk: stable, risk_to: high}
+    expect: {importance: important, reason_code: risk_rose_elevated}
+
+  - id: row02-risk-up-watch
+    why: risk_up into watch is attention
+    input: {trigger: risk_up, risk: stable, risk_to: watch}
+    expect: {importance: attention, reason_code: risk_rose_watch}
+
+  - id: row03-risk-up-other
+    why: risk_up that is not elevated/high/watch is fyi
+    input: {trigger: risk_up, risk: stable, risk_to: stable}
+    expect: {importance: fyi, reason_code: risk_rose_other}
+
+  - id: row04-risk-down
+    why: any risk_down is fyi
+    input: {trigger: risk_down, risk: high}
+    expect: {importance: fyi, reason_code: risk_fell}
+
+  - id: row05-expansion-strong
+    why: expansion into strong is attention
+    input: {trigger: expansion_up, risk: stable, expansion_to: strong}
+    expect: {importance: attention, reason_code: expansion_strong}
+
+  - id: row06-expansion-hypothesis
+    why: any other expansion_up is fyi
+    input: {trigger: expansion_up, risk: stable, expansion_to: hypothesis}
+    expect: {importance: fyi, reason_code: expansion_hypothesis}
+
+  - id: row07-signal-high-at-risk
+    why: a high signal on a client at watch is attention
+    input: {trigger: signal_opened, risk: watch, severity: high}
+    expect: {importance: attention, reason_code: signal_high}
+
+  - id: row07-signal-high-at-high
+    why: at least watch also holds at high
+    input: {trigger: signal_opened, risk: high, severity: high}
+    expect: {importance: attention, reason_code: signal_high}
+
+  - id: row08-signal-below-watch
+    why: a high signal on a stable client is not signal_high
+    input: {trigger: signal_opened, risk: stable, severity: high}
+    expect: {importance: fyi, reason_code: signal_opened}
+
+  - id: row08-signal-medium
+    why: a non-high signal is fyi even at high risk
+    input: {trigger: signal_opened, risk: high, severity: medium}
+    expect: {importance: fyi, reason_code: signal_opened}
+
+  - id: row09-signal-resolved
+    why: any resolved signal is fyi
+    input: {trigger: signal_resolved, risk: high}
+    expect: {importance: fyi, reason_code: signal_resolved}
+
+  - id: row10-firm-commitment-elevated
+    why: a firm late commitment at elevated risk is important
+    input: {trigger: commitment_late, risk: elevated, owner_side: firm}
+    expect: {importance: important, reason_code: commitment_late_at_risk}
+
+  - id: row10-firm-commitment-high
+    why: at least elevated also holds at high
+    input: {trigger: commitment_late, risk: high, owner_side: firm}
+    expect: {importance: important, reason_code: commitment_late_at_risk}
+
+  - id: row11-firm-commitment-watch
+    why: a firm late commitment just below elevated is attention
+    input: {trigger: commitment_late, risk: watch, owner_side: firm}
+    expect: {importance: attention, reason_code: commitment_late}
+
+  - id: row11-firm-commitment-stable
+    why: a firm late commitment at stable is still attention
+    input: {trigger: commitment_late, risk: stable, owner_side: firm}
+    expect: {importance: attention, reason_code: commitment_late}
+
+  - id: row12-client-commitment-late
+    why: a client-side late commitment is fyi whatever the risk
+    input: {trigger: commitment_late, risk: high, owner_side: client}
+    expect: {importance: fyi, reason_code: client_commitment_late}
+
+  - id: row12-commitment-late-unknown-owner
+    why: an unknown owner is never raised above fyi
+    input: {trigger: commitment_late, risk: high, owner_side: null}
+    expect: {importance: fyi, reason_code: client_commitment_late}
+
+  - id: row13-notice-below-watch
+    why: notice_close on a stable client returns None even inside the close window
+    input: {trigger: notice_close, risk: stable, days_to_notice: 14}
+    expect: null
+
+  - id: row13-notice-no-renewal
+    why: an unknown deadline returns None
+    input: {trigger: notice_close, risk: watch, days_to_notice: null}
+    expect: null
+
+  - id: row13-notice-negative
+    why: a deadline in the past returns None
+    input: {trigger: notice_close, risk: watch, days_to_notice: -1}
+    expect: null
+
+  - id: row14-notice-zero
+    why: a deadline today is inside the close window
+    input: {trigger: notice_close, risk: watch, days_to_notice: 0}
+    expect: {importance: important, reason_code: notice_deadline_close}
+
+  - id: row14-notice-at-close-boundary
+    why: exactly 14 days is still important
+    input: {trigger: notice_close, risk: watch, days_to_notice: 14}
+    expect: {importance: important, reason_code: notice_deadline_close}
+
+  - id: row15-notice-at-15
+    why: 15 days leaves the close window, entering the near window (attention)
+    input: {trigger: notice_close, risk: watch, days_to_notice: 15}
+    expect: {importance: attention, reason_code: notice_deadline_near}
+
+  - id: row15-notice-at-30
+    why: exactly 30 days is still near
+    input: {trigger: notice_close, risk: elevated, days_to_notice: 30}
+    expect: {importance: attention, reason_code: notice_deadline_near}
+
+  - id: row16-notice-at-31
+    why: 31 days is outside both windows and returns None
+    input: {trigger: notice_close, risk: high, days_to_notice: 31}
+    expect: null
+
+# ---------------------------------------------------------------------------------------------------
+# merge: importance choice, reason-order ties, `also`, evidence union, metadata_only.
+# ---------------------------------------------------------------------------------------------------
+merge:
+  - id: single-candidate
+    why: a single candidate keeps its kind, reason, importance and as_of
+    input:
+      client: c1
+      context: {risk: high, policy: full, days_to_notice: 10}
+      candidates:
+        - {kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}
+    expect:
+      decision:
+        client: c1
+        kind: state_change
+        reason_code: risk_rose_elevated
+        importance: important
+        also: []
+        evidence: [e1]
+        risk_rank: 3
+        days_to_notice: 10
+        as_of: 2026-10-01
+
+  - id: higher-importance-wins
+    why: the important candidate beats the attention one
+    input:
+      client: c1
+      context: {risk: watch, policy: full, days_to_notice: 10}
+      candidates:
+        - {kind: commitment_watch, trigger: commitment_late, owner_side: firm, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-02, evidence: [e2]}
+    expect:
+      decision:
+        client: c1
+        kind: state_change
+        reason_code: risk_rose_elevated
+        importance: important
+        also: [commitment_late]
+        evidence: [e1, e2]
+        risk_rank: 1
+        days_to_notice: 10
+        as_of: 2026-10-02
+
+  - id: tie-rows-3-and-4
+    why: equal fyi importance takes the earlier reason row (risk_rose_other over risk_fell)
+    input:
+      client: c1
+      context: {risk: stable, policy: full, days_to_notice: null}
+      candidates:
+        - {kind: state_change, trigger: risk_up, risk_to: stable, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: state_change, trigger: risk_down, as_of: 2026-10-01, evidence: [e2]}
+    expect:
+      decision:
+        client: c1
+        kind: state_change
+        reason_code: risk_rose_other
+        importance: fyi
+        also: [risk_fell]
+        evidence: [e1, e2]
+        risk_rank: 0
+        days_to_notice: null
+        as_of: 2026-10-01
+
+  - id: tie-rows-8-and-9
+    why: equal fyi importance takes the earlier reason row (signal_opened over signal_resolved)
+    input:
+      client: c1
+      context: {risk: stable, policy: full, days_to_notice: null}
+      candidates:
+        - {kind: state_change, trigger: signal_opened, severity: low, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: state_change, trigger: signal_resolved, as_of: 2026-10-01, evidence: [e2]}
+    expect:
+      decision:
+        client: c1
+        kind: state_change
+        reason_code: signal_opened
+        importance: fyi
+        also: [signal_resolved]
+        evidence: [e1, e2]
+        risk_rank: 0
+        days_to_notice: null
+        as_of: 2026-10-01
+
+  - id: tie-reason-order-signal-resolved
+    why: equal fyi importance takes the earlier reason row (signal_resolved at row 9 over client_commitment_late at row 12)
+    input:
+      client: c1
+      context: {risk: stable, policy: full, days_to_notice: null}
+      candidates:
+        - {kind: state_change, trigger: signal_resolved, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: commitment_watch, trigger: commitment_late, owner_side: client, as_of: 2026-10-01, evidence: [e2]}
+    expect:
+      decision:
+        client: c1
+        kind: state_change
+        reason_code: signal_resolved
+        importance: fyi
+        also: [client_commitment_late]
+        evidence: [e1, e2]
+        risk_rank: 0
+        days_to_notice: null
+        as_of: 2026-10-01
+
+  - id: all-none
+    why: candidates that all classify to None give no decision
+    input:
+      client: c1
+      context: {risk: watch, policy: full, days_to_notice: null}
+      candidates:
+        - {kind: state_change, trigger: notice_close, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: state_change, trigger: notice_close, as_of: 2026-10-01, evidence: [e2]}
+    expect: null
+
+  - id: also-sorted-distinct-without-winner
+    why: also is sorted, distinct and never repeats the winner's code
+    input:
+      client: c1
+      context: {risk: watch, policy: full, days_to_notice: null}
+      candidates:
+        - {kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: state_change, trigger: risk_up, risk_to: watch, as_of: 2026-10-01, evidence: [e2]}
+        - {kind: state_change, trigger: risk_down, as_of: 2026-10-01, evidence: [e3]}
+        - {kind: state_change, trigger: risk_down, as_of: 2026-10-01, evidence: [e4]}
+        - {kind: state_change, trigger: signal_resolved, as_of: 2026-10-01, evidence: [e5]}
+    expect:
+      decision:
+        client: c1
+        kind: state_change
+        reason_code: risk_rose_elevated
+        importance: important
+        also: [risk_fell, risk_rose_watch, signal_resolved]
+        evidence: [e1, e2, e3, e4, e5]
+        risk_rank: 1
+        days_to_notice: null
+        as_of: 2026-10-01
+
+  - id: winner-newest-as-of
+    why: equal importance and reason pick the newer as_of, even over a better kind
+    input:
+      client: c1
+      context: {risk: high, policy: full, days_to_notice: 10}
+      candidates:
+        - {kind: expansion, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-05, evidence: [e2]}
+    expect:
+      decision:
+        client: c1
+        kind: state_change
+        reason_code: risk_rose_elevated
+        importance: important
+        also: []
+        evidence: [e1, e2]
+        risk_rank: 3
+        days_to_notice: 10
+        as_of: 2026-10-05
+
+  - id: winner-most-evidence
+    why: with importance, reason and as_of equal the candidate with more evidence ids wins
+    input:
+      client: c1
+      context: {risk: high, policy: full, days_to_notice: 10}
+      candidates:
+        - {kind: commitment_watch, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: expansion, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1, e2]}
+    expect:
+      decision:
+        client: c1
+        kind: expansion
+        reason_code: risk_rose_elevated
+        importance: important
+        also: []
+        evidence: [e1, e2]
+        risk_rank: 3
+        days_to_notice: 10
+        as_of: 2026-10-01
+
+  - id: winner-kind-alphabetical
+    why: with importance, reason, as_of and evidence count equal the alphabetically first kind wins
+    input:
+      client: c1
+      context: {risk: high, policy: full, days_to_notice: 10}
+      candidates:
+        - {kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}
+        - {kind: expansion, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}
+    expect:
+      decision:
+        client: c1
+        kind: expansion
+        reason_code: risk_rose_elevated
+        importance: important
+        also: []
+        evidence: [e1]
+        risk_rank: 3
+        days_to_notice: 10
+        as_of: 2026-10-01
+
+  - id: metadata-only-drops-evidence
+    why: a metadata_only client's decision never carries evidence ids
+    input:
+      client: c1
+      context: {risk: high, policy: metadata_only, days_to_notice: 10}
+      candidates:
+        - {kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1, e2]}
+    expect:
+      decision:
+        client: c1
+        kind: state_change
+        reason_code: risk_rose_elevated
+        importance: important
+        also: []
+        evidence: []
+        risk_rank: 3
+        days_to_notice: 10
+        as_of: 2026-10-01
+
+# ---------------------------------------------------------------------------------------------------
+# is_suppressed: verdicts, worse state, new evidence, the wrong hold, priors and metadata_only.
+# ---------------------------------------------------------------------------------------------------
+is_suppressed:
+  - id: not-now-same-state-no-new
+    why: a not_now prior with the same state and no new evidence suppresses
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: true
+
+  - id: not-now-worse-state
+    why: a worse state lifts a not_now suppression
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-20, risk_rank: 2, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: not-now-new-evidence
+    why: new evidence lifts a not_now suppression
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1, e2]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: already-known-same-state-no-new
+    why: an already_known prior with the same state and no new evidence suppresses
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: already_known, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: true
+
+  - id: already-known-worse-state
+    why: a worse state lifts an already_known suppression
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: already_known, surfaced_on: 2026-09-20, risk_rank: 2, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: already-known-new-evidence
+    why: new evidence lifts an already_known suppression
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1, e2]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: already_known, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: wrong-same-state-inside-hold
+    why: wrong with the same state and no new evidence stays suppressed
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: true
+
+  - id: wrong-worse-state
+    why: a worse state lifts even a wrong hold
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-20, risk_rank: 2, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: wrong-new-evidence-inside-hold
+    why: new evidence alone does not lift a wrong hold
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1, e2]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: true
+
+  - id: wrong-day-29-still-held
+    why: 29 days after a wrong is still inside the 30-day hold
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1, e2]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-02, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: true
+
+  - id: wrong-day-30-new-evidence
+    why: from the 30th day wrong behaves like not_now, so new evidence lifts it
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1, e2]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-01, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: wrong-day-30-no-new
+    why: from the 30th day wrong behaves like not_now, so the same state still suppresses
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-01, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: true
+
+  - id: useful-never-suppresses
+    why: a useful verdict never suppresses
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: useful, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: no-verdict-never-suppresses
+    why: a prior without a verdict never suppresses
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: null, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: different-kind-never-suppresses
+    why: a prior of another kind is ignored
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: commitment_watch, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: different-reason-never-suppresses
+    why: a prior of another reason_code is ignored
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_watch, verdict: not_now, surfaced_on: 2026-09-20, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: two-priors-latest-decides
+    why: with two priors the latest surfaced_on decides, not the older wrong
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e2]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-01, risk_rank: 3, evidence: [e2]}
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: already_known, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: two-priors-tie-wrong-beats-not-now
+    why: on the same surfaced_on, wrong wins the tie-break over not_now
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1, e2]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e1]}
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: true
+
+  - id: two-priors-tie-wrong-beats-already-known
+    why: on the same surfaced_on, wrong wins over already_known (inside the hold new evidence does not lift it)
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1, e2]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: already_known, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e1]}
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: wrong, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e1]}
+      today: 2026-10-01
+    expect: true
+
+  - id: two-priors-tie-lowest-risk-rank
+    why: with surfaced_on and verdict equal the lowest risk rank is used, preferring to surface
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e1]}
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-10, risk_rank: 1, evidence: [e1]}
+      today: 2026-10-01
+    expect: false
+
+  - id: two-priors-tie-fewest-evidence
+    why: with surfaced_on, verdict and risk rank equal the prior with the fewest evidence ids is used
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e1]}
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-10, risk_rank: 3, evidence: []}
+      today: 2026-10-01
+    expect: false
+
+  - id: two-priors-tie-evidence-ids-sorted
+    why: with all else equal the prior whose sorted evidence-id strings are smallest is used
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: [e1]}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e1]}
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-10, risk_rank: 3, evidence: [e2]}
+      today: 2026-10-01
+    expect: false
+
+  - id: metadata-only-same-state
+    why: with empty evidence on both sides only the state decides, so the same state suppresses
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: []}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-20, risk_rank: 3, evidence: []}
+      today: 2026-10-01
+    expect: true
+
+  - id: metadata-only-worse-state
+    why: with empty evidence on both sides a worse state lifts the suppression
+    input:
+      decision: {kind: state_change, reason_code: risk_rose_elevated, risk_rank: 3, evidence: []}
+      priors:
+        - {kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-20, risk_rank: 2, evidence: []}
+      today: 2026-10-01
+    expect: false
+
+# ---------------------------------------------------------------------------------------------------
+# apply_budget: free slots, the ranking key, untouched non-important decisions and output order.
+# ---------------------------------------------------------------------------------------------------
+apply_budget:
+  - id: used-0-of-3-all-stay
+    why: three free slots keep three important decisions important
+    input:
+      important_used: 0
+      decisions:
+        - {client: c1, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e1]}
+        - {client: c2, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e2]}
+        - {client: c3, kind: state_change, reason_code: commitment_late_at_risk, importance: important, risk_rank: 2, days_to_notice: 1, as_of: 2026-10-01, evidence: [e3]}
+    expect:
+      - {client: c1, reason_code: risk_rose_elevated, importance: important, demoted_reason: null}
+      - {client: c2, reason_code: risk_rose_elevated, importance: important, demoted_reason: null}
+      - {client: c3, reason_code: commitment_late_at_risk, importance: important, demoted_reason: null}
+
+  - id: used-2-of-3-one-slots
+    why: two used slots leave one, so the next two important decisions are demoted to attention
+    input:
+      important_used: 2
+      decisions:
+        - {client: c1, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e1]}
+        - {client: c2, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e2]}
+        - {client: c3, kind: state_change, reason_code: commitment_late_at_risk, importance: important, risk_rank: 2, days_to_notice: 1, as_of: 2026-10-01, evidence: [e3]}
+    expect:
+      - {client: c1, reason_code: risk_rose_elevated, importance: important, demoted_reason: null}
+      - {client: c2, reason_code: risk_rose_elevated, importance: attention, demoted_reason: budget}
+      - {client: c3, reason_code: commitment_late_at_risk, importance: attention, demoted_reason: budget}
+
+  - id: used-3-of-3-none
+    why: a full budget demotes every important decision
+    input:
+      important_used: 3
+      decisions:
+        - {client: c1, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e1]}
+        - {client: c2, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e2]}
+    expect:
+      - {client: c1, reason_code: risk_rose_elevated, importance: attention, demoted_reason: budget}
+      - {client: c2, reason_code: risk_rose_elevated, importance: attention, demoted_reason: budget}
+
+  - id: used-over-budget
+    why: more used than the budget clamps the free slots to zero, never negative
+    input:
+      important_used: 5
+      decisions:
+        - {client: c1, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e1]}
+    expect:
+      - {client: c1, reason_code: risk_rose_elevated, importance: attention, demoted_reason: budget}
+
+  - id: ranking-key
+    why: ranking is risk rank, then notice days with None last, then newest as_of, then client id
+    input:
+      important_used: 0
+      decisions:
+        - {client: c1, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e1]}
+        - {client: c2, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-01, evidence: [e2]}
+        - {client: c3, kind: state_change, reason_code: risk_rose_elevated, importance: important, risk_rank: 3, days_to_notice: 5, as_of: 2026-10-02, evidence: [e3]}
+        - {client: c4, kind: state_change, reason_code: notice_deadline_close, importance: important, risk_rank: 3, days_to_notice: null, as_of: 2026-10-03, evidence: [e4]}
+        - {client: c5, kind: state_change, reason_code: commitment_late_at_risk, importance: important, risk_rank: 2, days_to_notice: 1, as_of: 2026-10-04, evidence: [e5]}
+        - {client: c6, kind: state_change, reason_code: notice_deadline_close, importance: important, risk_rank: 3, days_to_notice: 10, as_of: 2026-09-30, evidence: [e6]}
+        - {client: c7, kind: expansion, reason_code: expansion_strong, importance: attention, risk_rank: 1, days_to_notice: 2, as_of: 2026-10-05, evidence: [e7]}
+    expect:
+      - {client: c3, reason_code: risk_rose_elevated, importance: important, demoted_reason: null}
+      - {client: c1, reason_code: risk_rose_elevated, importance: important, demoted_reason: null}
+      - {client: c2, reason_code: risk_rose_elevated, importance: important, demoted_reason: null}
+      - {client: c6, reason_code: notice_deadline_close, importance: attention, demoted_reason: budget}
+      - {client: c4, reason_code: notice_deadline_close, importance: attention, demoted_reason: budget}
+      - {client: c5, reason_code: commitment_late_at_risk, importance: attention, demoted_reason: budget}
+      - {client: c7, reason_code: expansion_strong, importance: attention, demoted_reason: null}
+
+# ---------------------------------------------------------------------------------------------------
+# plan: end to end on small workspaces.
+# ---------------------------------------------------------------------------------------------------
+plan:
+  - id: quiet-day
+    why: a context with no candidates produces nothing
+    input:
+      important_used: 0
+      today: 2026-10-01
+      clients:
+        - client: c1
+          context: {risk: high, policy: full, days_to_notice: 10}
+          candidates: []
+    expect:
+      counts: {items: 0, important: 0, demoted: 0, suppressed: 0}
+      decisions: []
+
+  - id: five-rises-budget-demotes-two
+    why: five important rises with three free slots keep three and demote two, dropping none
+    input:
+      important_used: 0
+      today: 2026-10-01
+      clients:
+        - {client: c1, context: {risk: high, policy: full, days_to_notice: 10}, candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}]}
+        - {client: c2, context: {risk: high, policy: full, days_to_notice: 9}, candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e2]}]}
+        - {client: c3, context: {risk: high, policy: full, days_to_notice: 8}, candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e3]}]}
+        - {client: c4, context: {risk: high, policy: full, days_to_notice: 7}, candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e4]}]}
+        - {client: c5, context: {risk: high, policy: full, days_to_notice: 6}, candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e5]}]}
+    expect:
+      counts: {items: 5, important: 3, demoted: 2, suppressed: 0}
+      decisions:
+        - {client: c5, kind: state_change, reason_code: risk_rose_elevated, importance: important, also: [], evidence: [e5], demoted_reason: null, risk_rank: 3, days_to_notice: 6, as_of: 2026-10-01}
+        - {client: c4, kind: state_change, reason_code: risk_rose_elevated, importance: important, also: [], evidence: [e4], demoted_reason: null, risk_rank: 3, days_to_notice: 7, as_of: 2026-10-01}
+        - {client: c3, kind: state_change, reason_code: risk_rose_elevated, importance: important, also: [], evidence: [e3], demoted_reason: null, risk_rank: 3, days_to_notice: 8, as_of: 2026-10-01}
+        - {client: c2, kind: state_change, reason_code: risk_rose_elevated, importance: attention, also: [], evidence: [e2], demoted_reason: budget, risk_rank: 3, days_to_notice: 9, as_of: 2026-10-01}
+        - {client: c1, kind: state_change, reason_code: risk_rose_elevated, importance: attention, also: [], evidence: [e1], demoted_reason: budget, risk_rank: 3, days_to_notice: 10, as_of: 2026-10-01}
+
+  - id: feedback-silences-one-worse-state-brings-it-back
+    why: a same-state not_now silences a client while a worse state lifts another's suppression
+    input:
+      important_used: 0
+      today: 2026-10-01
+      clients:
+        - client: c1
+          context: {risk: high, policy: full, days_to_notice: 10}
+          candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}]
+          priors: [{kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-25, risk_rank: 3, evidence: [e1]}]
+        - client: c2
+          context: {risk: high, policy: full, days_to_notice: 10}
+          candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e2]}]
+          priors: [{kind: state_change, reason_code: risk_rose_elevated, verdict: not_now, surfaced_on: 2026-09-25, risk_rank: 1, evidence: [e2]}]
+    expect:
+      counts: {items: 1, important: 1, demoted: 0, suppressed: 1}
+      decisions:
+        - {client: c2, kind: state_change, reason_code: risk_rose_elevated, importance: important, also: [], evidence: [e2], demoted_reason: null, risk_rank: 3, days_to_notice: 10, as_of: 2026-10-01}
+
+  - id: candidate-without-context-is-skipped
+    why: a client with candidates but no context counts as nothing
+    input:
+      important_used: 0
+      today: 2026-10-01
+      clients:
+        - client: c1
+          candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e1]}]
+        - client: c2
+          context: {risk: high, policy: full, days_to_notice: 10}
+          candidates: [{kind: state_change, trigger: risk_up, risk_to: high, as_of: 2026-10-01, evidence: [e2]}]
+    expect:
+      counts: {items: 1, important: 1, demoted: 0, suppressed: 0}
+      decisions:
+        - {client: c2, kind: state_change, reason_code: risk_rose_elevated, importance: important, also: [], evidence: [e2], demoted_reason: null, risk_rank: 3, days_to_notice: 10, as_of: 2026-10-01}

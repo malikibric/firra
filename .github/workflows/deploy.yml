@@ -1,0 +1,155 @@
+# Reusable deploy: build images, run migrations, roll out Cloud Run, smoke-test.
+# Called by deploy-staging.yml and deploy-prod.yml.
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      ref:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 45
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      REGION: europe-west3
+      REGISTRY: europe-west3-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/firra
+      TAG: ${{ inputs.ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+
+      - id: gcp
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - run: gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build and push worker
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: services/worker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/worker:${{ env.TAG }}
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+      - name: Build and push api
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/api:${{ env.TAG }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter firra
+      - name: Apply database migrations
+        env:
+          # Session-pooler connection string (IPv4), password URL-encoded.
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: pnpm exec supabase db push --db-url "$SUPABASE_DB_URL" --yes
+
+      - name: Deploy Cloud Run services
+        run: |
+          for service in worker api; do
+            gcloud run deploy "firra-$service" \
+              --image "$REGISTRY/$service:$TAG" \
+              --region "$REGION" \
+              --quiet
+          done
+
+      - name: Health checks
+        run: |
+          for url in "${{ vars.API_URL }}/health" "${{ vars.API_URL }}/ready"; do
+            curl --fail --silent --show-error --retry 5 --retry-delay 5 --retry-all-errors "$url"
+            echo
+          done
+
+      - id: smoke_token
+        if: vars.SMOKE_WORKSPACE_ID != ''
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+          token_format: id_token
+          id_token_audience: ${{ vars.API_URL }}
+          id_token_include_email: true
+          create_credentials_file: false
+      - name: Task round-trip (api -> Cloud Tasks -> worker -> DB)
+        if: vars.SMOKE_WORKSPACE_ID != ''
+        env:
+          ID_TOKEN: ${{ steps.smoke_token.outputs.id_token }}
+          API_URL: ${{ vars.API_URL }}
+          WORKSPACE_ID: ${{ vars.SMOKE_WORKSPACE_ID }}
+        run: |
+          job=$(curl --fail --silent --show-error -X POST "$API_URL/internal/v1/diagnostics/ping" \
+            -H "Authorization: Bearer $ID_TOKEN" -H "Content-Type: application/json" \
+            -d "{\"workspace_id\":\"$WORKSPACE_ID\"}" | jq -r .id)
+          echo "job $job"
+          for attempt in $(seq 1 30); do
+            status=$(curl --fail --silent --show-error \
+              "$API_URL/internal/v1/workspaces/$WORKSPACE_ID/jobs/$job" \
+              -H "Authorization: Bearer $ID_TOKEN" | jq -r .status)
+            echo "attempt $attempt: $status"
+            [ "$status" = "succeeded" ] && exit 0
+            [ "$status" = "failed" ] && exit 1
+            sleep 4
+          done
+          echo "round-trip did not complete in time" && exit 1
+      # Informational: calls each Gemini model once on the EU Vertex endpoint (the design notes
+      # D1). A model that is not served there shows up here without blocking the deploy.
+      # Off unless the environment variable LLM_PROBE is "on" (each probe is a paid call).
+      - name: LLM probe (Gemini on the EU endpoint)
+        if: vars.SMOKE_WORKSPACE_ID != '' && vars.LLM_PROBE == 'on'
+        continue-on-error: true
+        env:
+          ID_TOKEN: ${{ steps.smoke_token.outputs.id_token }}
+          API_URL: ${{ vars.API_URL }}
+          WORKSPACE_ID: ${{ vars.SMOKE_WORKSPACE_ID }}
+        run: |
+          job=$(curl --fail --silent --show-error -X POST "$API_URL/internal/v1/diagnostics/llm-probe" \
+            -H "Authorization: Bearer $ID_TOKEN" -H "Content-Type: application/json" \
+            -d "{\"workspace_id\":\"$WORKSPACE_ID\"}" | jq -r .id)
+          echo "job $job"
+          for attempt in $(seq 1 45); do
+            body=$(curl --fail --silent --show-error \
+              "$API_URL/internal/v1/workspaces/$WORKSPACE_ID/jobs/$job" -H "Authorization: Bearer $ID_TOKEN")
+            status=$(echo "$body" | jq -r .status)
+            if [ "$status" = "succeeded" ] || [ "$status" = "failed" ]; then
+              echo "$body" | jq '{status, error_class, progress}'
+              [ "$(echo "$body" | jq -r .progress.all_ok)" = "true" ] && exit 0
+              echo "::warning::LLM probe: not every model answered on the EU endpoint (see above)." && exit 1
+            fi
+            sleep 4
+          done
+          echo "::warning::LLM probe did not finish in time" && exit 1
+      - name: Round-trip skipped
+        if: vars.SMOKE_WORKSPACE_ID == ''
+        run: echo "::warning::Set the SMOKE_WORKSPACE_ID variable to enable the task round-trip smoke test."

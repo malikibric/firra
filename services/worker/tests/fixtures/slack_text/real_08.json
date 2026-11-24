@@ -1,0 +1,1 @@
+{"channels": {}, "expected": "Delayed Shipped on Thursday. Write to maria@acme.example for the changelog.", "input": "~Delayed~ Shipped on Thursday. Write to <mailto:maria@acme.example|Maria> for the changelog.", "users": {}}

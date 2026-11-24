@@ -1,0 +1,1 @@
+{"channels": {"C1": "proj-acme"}, "expected": "Morning @Dana! The launch is still on for Friday Can you review the rollout plan (https://x.example/plan) before standup?", "input": "Morning <@U1>! The *launch* is still on for Friday :tada: Can you review <https://x.example/plan|the rollout plan> before standup?", "users": {"U1": "Dana"}}

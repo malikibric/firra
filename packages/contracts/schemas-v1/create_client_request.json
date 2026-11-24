@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "policy": {
+      "default": "full",
+      "type": "string",
+      "enum": [
+        "full",
+        "metadata_only",
+        "excluded"
+      ]
+    },
+    "domains": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 253,
+        "pattern": "^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"
+      }
+    },
+    "confirm_exclusion": {
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "name",
+    "policy",
+    "domains",
+    "confirm_exclusion"
+  ],
+  "additionalProperties": false,
+  "description": "Selecting excluded requires confirm_exclusion: true.",
+  "title": "CreateClientRequest",
+  "$id": "https://firra.app/contracts/v1/create_client_request.json"
+}

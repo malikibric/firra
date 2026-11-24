@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars (git-ignored) and fill in.
+project_id               = "firra-staging-REPLACE"
+billing_account_id       = "XXXXXX-XXXXXX-XXXXXX"
+budget_amount            = 20
+budget_currency          = "USD" # must match the billing account currency
+alert_email              = "you@example.com"
+supabase_url             = "https://REPLACE.supabase.co"
+supabase_publishable_key = "sb_publishable_REPLACE"
+create_services          = false # first apply; set true after adding secret values
+enable_sentry            = false
+enable_resend            = false
+email_from               = ""
+enable_google            = false # true after creating the OAuth client (docs/runbooks)
+google_client_id         = ""
+enable_microsoft         = false # true after creating the Entra app (docs/runbooks)
+microsoft_client_id      = ""

@@ -1,0 +1,34 @@
+# Account assessment (the design notes). `version` is stored on every assessment; change
+# it whenever a rule or threshold here changes.
+version: assessment.v1
+
+# Families that raise the risk state; `timing` modifies it and `expansion` never raises it.
+risk_families: [delivery, sentiment, stakeholder, commercial, meetings, engagement]
+family_priority: [delivery, sentiment, stakeholder, commercial, meetings, engagement, timing, expansion]
+primary_drivers: 3
+
+timing:
+  escalate_within_days: 45    # renewal_window with days_to_notice at or below this escalates one step
+
+deescalate_after: 2           # consecutive runs below the current state before it drops
+
+coverage:
+  # A baseline connection whose data ends more than this before the run date breaks coverage
+  # (D4). An upload's newest message or a sync a few hours old is normal, not a gap.
+  tolerance_days: 3
+
+expansion:
+  inputs: [expansion_need, client_initiative, budget_growth, new_senior_stakeholder]
+  anchors: [expansion_need, client_initiative, budget_growth]
+  strong_need_mentions: 4
+
+caveats:
+  low_data_min_client_messages: 8
+  low_data_window_days: 120
+  holiday_window_days: 30
+  holiday_periods:             # MM-DD, inclusive; a period may wrap the year end
+    - {start: "12-20", end: "01-06"}
+    - {start: "08-01", end: "08-31"}
+  recent_positive_days: 30
+  stakeholder_handover_days: 60
+  handover_types: [champion_departure, new_senior_stakeholder]

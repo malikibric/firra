@@ -1,0 +1,8 @@
+version: routines.v1
+budget_per_week: 3
+wrong_hold_days: 30
+notice_close_days: 14
+notice_near_days: 30
+schedules:
+  morning_scan: { hour: 7, minute: 30, weekdays: [1, 2, 3, 4, 5] }
+  commitment_watch: { hour: 8, minute: 0, weekdays: [1, 2, 3, 4, 5] }

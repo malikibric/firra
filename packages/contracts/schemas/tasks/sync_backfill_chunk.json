@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/sync_backfill_chunk.json",
+  "title": "SyncBackfillChunkPayload",
+  "description": "Payload of sync.backfill_chunk: import one connection's records for one time window (a month).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["connection_id", "window_start", "window_end"],
+  "properties": {
+    "connection_id": { "type": "string", "format": "uuid" },
+    "window_start": { "type": "string", "format": "date-time" },
+    "window_end": { "type": "string", "format": "date-time" }
+  }
+}

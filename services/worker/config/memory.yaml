@@ -1,0 +1,5 @@
+version: memory.v1
+decision_maker_title_terms: [chief, ceo, cmo, cfo, coo, cto, cro, vp, vice president, head of, director, founder, co-founder, owner, president, partner, general manager]
+champion_window_days: 180
+champion_min_messages: 3
+unknowns: {result_days: 90, champion_contact_days: 30}

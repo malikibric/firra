@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/routines_run.json",
+  "title": "RoutinesRunPayload",
+  "description": "Run one routine for one workspace-local date (docs/plans/e-routines.md E-D3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["routine_id", "scheduled_for"],
+  "properties": {
+    "routine_id": { "type": "string", "format": "uuid" },
+    "scheduled_for": { "type": "string", "format": "date" }
+  }
+}

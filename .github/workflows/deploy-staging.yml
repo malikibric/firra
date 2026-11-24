@@ -1,0 +1,21 @@
+name: Deploy staging
+
+# Manual only (Actions -> Deploy staging -> Run workflow). Local v1 (docs/plans/local-v1.md) checks
+# everything on the Mac with scripts/check.sh and spends no Actions minutes; the relay deploys from the
+# Mac in F7. This workflow goes away with the cloud data plane (L9-02).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  staging:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      ref: ${{ github.sha }}
+    # Deploy secrets are GitHub *environment* secrets; they resolve only inside the called job
+    # that declares the environment, so they cannot be passed explicitly from here.
+    secrets: inherit # nosemgrep: secrets-inherit

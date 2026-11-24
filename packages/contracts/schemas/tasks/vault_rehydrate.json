@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://firra.app/contracts/tasks/vault_rehydrate.json",
+  "title": "VaultRehydratePayload",
+  "description": "Fetch only this user's previously purged, known email bodies. Workspace/job/idempotency ids are carried by TaskEnvelope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["connection_id", "user_id"],
+  "properties": {
+    "connection_id": { "type": "string", "format": "uuid" },
+    "user_id": { "type": "string", "format": "uuid" }
+  }
+}
